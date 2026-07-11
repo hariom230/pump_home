@@ -31,7 +31,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100ve;
+            min-height: 100vh;
         }
 
         .container {
@@ -205,11 +205,10 @@
 
 <script>
     // ==========================================
-    //       MQTT CONFIGURATION (WebSockets)
+    //       MQTT CONFIGURATION (Secure WSS)
     // ==========================================
-    // NOTE: For browsers to connect, your MQTT Broker must have a WebSockets listener active.
     const MQTT_HOST = "broker.hivemq.com"; 
-    const MQTT_PORT = 8000; // Standard WebSockets port for MQTT (NOT 1883)
+    const MQTT_PORT = 8884; // Fixed: Switched to HiveMQ Secure WebSockets Port
     const CLIENT_ID = "WebPanel_" + Math.random().toString(16).substr(2, 8);
 
     // Topics Matching ESP8266 Architecture
@@ -232,9 +231,7 @@
             onSuccess: onConnect,
             onFailure: onFailure,
             keepAliveInterval: 30,
-            useSSL: false // Change to true if broker supports secure secure websockets (WSS)
-            // userName: "YOUR_USERNAME",  // Uncomment if required
-            // password: "YOUR_PASSWORD"   // Uncomment if required
+            useSSL: true // Fixed: Forces encryption to satisfy GitHub Pages HTTPS requirement
         };
         client.connect(options);
     }
