@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mehra Lab | Water Control Panel</title>
+    <title>hrx_MehraLab_Bilaspur | Water Control Panel</title>
     <!-- MQTT Over WebSockets Client Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
     <style>
@@ -88,7 +88,6 @@
             box-shadow: 0 0 8px var(--accent-green);
         }
 
-        /* Dual-Grid Layout for Independent States */
         .grid-monitor {
             display: grid;
             grid-template-columns: 1fr;
@@ -182,7 +181,7 @@
 <div class="container">
     <header>
         <h1>System Control Panel</h1>
-        <p>Mehra Lab Water Management Automation</p>
+        <p>hrx_MehraLab_Bilaspur Water Management Automation</p>
     </header>
 
     <div class="status-bar">
@@ -193,7 +192,6 @@
         </div>
     </div>
 
-    <!-- Separated Monitor Panels -->
     <div class="grid-monitor">
         <div class="monitor-panel">
             <div class="monitor-label">Pump Network Status</div>
@@ -222,10 +220,11 @@
     const MQTT_PORT = 8884; 
     const CLIENT_ID = "WebPanel_" + Math.random().toString(16).substr(2, 8);
 
-    const TOPIC_SWITCH = "home/pump/switch";
-    const TOPIC_TIMER_SET = "home/pump/timer_set";
-    const TOPIC_STATUS = "home/pump/status";
-    const TOPIC_TELEMETRY = "home/pump/telemetry"; // Dedicated topic for running tracking values
+    // Updated with 'hrx' Unique Namespace Sub-Topic Structure
+    const TOPIC_SWITCH = "hrx_ml_bsp_wlvl_9482/node_esp8266/io_exec_switch";
+    const TOPIC_TIMER_SET = "hrx_ml_bsp_wlvl_9482/node_esp8266/config_runtime_min";
+    const TOPIC_STATUS = "hrx_ml_bsp_wlvl_9482/node_esp8266/telemetry_link_status";
+    const TOPIC_TELEMETRY = "hrx_ml_bsp_wlvl_9482/node_esp8266/telemetry_runtime_state";
 
     const client = new Paho.MQTT.Client(MQTT_HOST, Number(MQTT_PORT), CLIENT_ID);
 
@@ -238,7 +237,7 @@
         const options = {
             onSuccess: onConnect,
             onFailure: onFailure,
-            keepAliveInterval: 10, // Aggressive 10s window matching hardware profile
+            keepAliveInterval: 10,
             useSSL: true 
         };
         client.connect(options);
@@ -248,7 +247,6 @@
         document.getElementById("status-dot").className = "status-dot connected";
         document.getElementById("status-text").innerText = "Connected";
         
-        // Subscribe to both distinct informational fields
         client.subscribe(TOPIC_STATUS);
         client.subscribe(TOPIC_TELEMETRY);
     }
@@ -262,7 +260,6 @@
         document.getElementById("status-dot").className = "status-dot";
         document.getElementById("status-text").innerText = "Disconnected";
         
-        // Safe baseline reset on broker disconnect
         document.getElementById("pump-network-status").innerText = "Disconnected";
         document.getElementById("pump-network-status").style.color = "var(--accent-red)";
         document.getElementById("pump-run-status").innerText = "Unknown";
@@ -274,7 +271,6 @@
     }
 
     function onMessageArrived(message) {
-        // Track 1: Physical Link Status
         if (message.destinationName === TOPIC_STATUS) {
             const payload = message.payloadString;
             document.getElementById("pump-network-status").innerText = payload;
@@ -283,13 +279,11 @@
                 document.getElementById("pump-network-status").style.color = "var(--accent-green)";
             } else {
                 document.getElementById("pump-network-status").style.color = "var(--accent-red)";
-                // Force operational text clear if offline flag is dropped by broker LWT
                 document.getElementById("pump-run-status").innerText = "Offline";
                 document.getElementById("pump-run-status").style.color = "var(--text-muted)";
             }
         }
         
-        // Track 2: Dedicated Running Tracking Values
         if (message.destinationName === TOPIC_TELEMETRY) {
             const payload = message.payloadString;
             document.getElementById("pump-run-status").innerText = payload;
