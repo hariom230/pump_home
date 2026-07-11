@@ -88,27 +88,33 @@
             box-shadow: 0 0 8px var(--accent-green);
         }
 
+        /* Dual-Grid Layout for Independent States */
+        .grid-monitor {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
         .monitor-panel {
             text-align: center;
             background: #0f172a;
-            padding: 24px;
+            padding: 18px;
             border-radius: 16px;
-            margin-bottom: 24px;
             border: 1px solid #334155;
         }
 
         .monitor-label {
-            font-size: 0.875rem;
+            font-size: 0.825rem;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.05em;
         }
 
         .monitor-value {
-            font-size: 1.75rem;
+            font-size: 1.5rem;
             font-weight: 800;
-            margin-top: 8px;
-            color: var(--accent-blue);
+            margin-top: 6px;
         }
 
         .control-group {
@@ -180,16 +186,24 @@
     </header>
 
     <div class="status-bar">
-        <span>Web Dashboard Status:</span>
+        <span>Web Dashboard Link:</span>
         <div>
             <span id="status-dot" class="status-dot"></span>
             <span id="status-text">Disconnected</span>
         </div>
     </div>
 
-    <div class="monitor-panel">
-        <div class="monitor-label">Pump Telemetry Tracking</div>
-        <div id="pump-status" class="monitor-value" style="color: #f87171;">Offline / Idle</div>
+    <!-- Separated Monitor Panels -->
+    <div class="grid-monitor">
+        <div class="monitor-panel">
+            <div class="monitor-label">Pump Network Status</div>
+            <div id="pump-network-status" class="monitor-value" style="color: var(--accent-red);">Disconnected</div>
+        </div>
+        
+        <div class="monitor-panel">
+            <div class="monitor-label">Current Run State</div>
+            <div id="pump-run-status" class="monitor-value" style="color: var(--text-muted);">Idle</div>
+        </div>
     </div>
 
     <div class="control-group">
@@ -204,33 +218,27 @@
 </div>
 
 <script>
-    // ==========================================
-    //       MQTT CONFIGURATION (Secure WSS)
-    // ==========================================
     const MQTT_HOST = "broker.hivemq.com"; 
     const MQTT_PORT = 8884; 
     const CLIENT_ID = "WebPanel_" + Math.random().toString(16).substr(2, 8);
 
-    // Topics Matching ESP8266 Architecture
     const TOPIC_SWITCH = "home/pump/switch";
     const TOPIC_TIMER_SET = "home/pump/timer_set";
     const TOPIC_STATUS = "home/pump/status";
+    const TOPIC_TELEMETRY = "home/pump/telemetry"; // Dedicated topic for running tracking values
 
-    // Initialize Paho Client
     const client = new Paho.MQTT.Client(MQTT_HOST, Number(MQTT_PORT), CLIENT_ID);
 
-    // Event Loop Callbacks
     client.onConnectionLost = onConnectionLost;
     client.onMessageArrived = onMessageArrived;
 
-    // Trigger Connection Profile
     connectBroker();
 
     function connectBroker() {
         const options = {
             onSuccess: onConnect,
             onFailure: onFailure,
-            keepAliveInterval: 30,
+            keepAliveInterval: 10, // Aggressive 10s window matching hardware profile
             useSSL: true 
         };
         client.connect(options);
@@ -240,57 +248,61 @@
         document.getElementById("status-dot").className = "status-dot connected";
         document.getElementById("status-text").innerText = "Connected";
         
-        // Subscribe to live status tracking updates
+        // Subscribe to both distinct informational fields
         client.subscribe(TOPIC_STATUS);
-        client.subscribe(TOPIC_SWITCH);
+        client.subscribe(TOPIC_TELEMETRY);
     }
 
     function onFailure(message) {
         document.getElementById("status-text").innerText = "Connection Failed";
-        setTimeout(connectBroker, 5000); 
+        setTimeout(connectBroker, 3000); 
     }
 
     function onConnectionLost(responseObject) {
         document.getElementById("status-dot").className = "status-dot";
         document.getElementById("status-text").innerText = "Disconnected";
-        document.getElementById("pump-status").innerText = "Offline / Idle";
-        document.getElementById("pump-status").style.color = "var(--accent-red)";
+        
+        // Safe baseline reset on broker disconnect
+        document.getElementById("pump-network-status").innerText = "Disconnected";
+        document.getElementById("pump-network-status").style.color = "var(--accent-red)";
+        document.getElementById("pump-run-status").innerText = "Unknown";
+        document.getElementById("pump-run-status").style.color = "var(--text-muted)";
+        
         if (responseObject.errorCode !== 0) {
-            setTimeout(connectBroker, 5000);
+            setTimeout(connectBroker, 3000);
         }
     }
 
     function onMessageArrived(message) {
+        // Track 1: Physical Link Status
         if (message.destinationName === TOPIC_STATUS) {
             const payload = message.payloadString;
-            document.getElementById("pump-status").innerText = payload;
+            document.getElementById("pump-network-status").innerText = payload;
             
-            // Dynamically balance colors based on module state outputs
-            if (payload === "Connected to Broker" || payload === "Ready for Operation") {
-                document.getElementById("pump-status").style.color = "var(--accent-green)";
-            } else if (payload.startsWith("Running")) {
-                document.getElementById("pump-status").style.color = "var(--accent-blue)";
+            if (payload === "Connected to Broker") {
+                document.getElementById("pump-network-status").style.color = "var(--accent-green)";
             } else {
-                document.getElementById("pump-status").style.color = "var(--accent-red)";
+                document.getElementById("pump-network-status").style.color = "var(--accent-red)";
+                // Force operational text clear if offline flag is dropped by broker LWT
+                document.getElementById("pump-run-status").innerText = "Offline";
+                document.getElementById("pump-run-status").style.color = "var(--text-muted)";
             }
         }
-        if (message.destinationName === TOPIC_SWITCH) {
-            if(message.payloadString === "OFF") {
-                // If explicitly stopped, give it 1 second to check if it has a trailing state update
-                setTimeout(() => {
-                    const currentTxt = document.getElementById("pump-status").innerText;
-                    if(!currentTxt.includes("Connected to Broker") && !currentTxt.includes("Running")) {
-                        document.getElementById("pump-status").innerText = "Connected to Broker";
-                        document.getElementById("pump-status").style.color = "var(--accent-green)";
-                    }
-                }, 800);
+        
+        // Track 2: Dedicated Running Tracking Values
+        if (message.destinationName === TOPIC_TELEMETRY) {
+            const payload = message.payloadString;
+            document.getElementById("pump-run-status").innerText = payload;
+            
+            if (payload.startsWith("Running")) {
+                document.getElementById("pump-run-status").style.color = "var(--accent-blue)";
+            } else if (payload === "Idle") {
+                document.getElementById("pump-run-status").style.color = "var(--text-muted)";
+            } else {
+                document.getElementById("pump-run-status").style.color = "var(--accent-green)";
             }
         }
     }
-
-    // ==========================================
-    //            UI ACTION LINKAGES
-    // ==========================================
 
     function startPump() {
         const timerValue = document.getElementById("timer-input").value;
@@ -299,13 +311,11 @@
             return;
         }
 
-        // 1. Dispatch custom runtime countdown configuration
         const timerMessage = new Paho.MQTT.Message(timerValue.toString());
         timerMessage.destinationName = TOPIC_TIMER_SET;
         timerMessage.qos = 1;
         client.send(timerMessage);
 
-        // 2. Fire execution activation trigger sequence
         const switchMessage = new Paho.MQTT.Message("ON");
         switchMessage.destinationName = TOPIC_SWITCH;
         switchMessage.qos = 1;
