@@ -180,7 +180,7 @@
     </header>
 
     <div class="status-bar">
-        <span>Broker Connection:</span>
+        <span>Web Dashboard Status:</span>
         <div>
             <span id="status-dot" class="status-dot"></span>
             <span id="status-text">Disconnected</span>
@@ -189,7 +189,7 @@
 
     <div class="monitor-panel">
         <div class="monitor-label">Pump Telemetry Tracking</div>
-        <div id="pump-status" class="monitor-value">Offline / Idle</div>
+        <div id="pump-status" class="monitor-value" style="color: #f87171;">Offline / Idle</div>
     </div>
 
     <div class="control-group">
@@ -208,7 +208,7 @@
     //       MQTT CONFIGURATION (Secure WSS)
     // ==========================================
     const MQTT_HOST = "broker.hivemq.com"; 
-    const MQTT_PORT = 8884; // Fixed: Switched to HiveMQ Secure WebSockets Port
+    const MQTT_PORT = 8884; 
     const CLIENT_ID = "WebPanel_" + Math.random().toString(16).substr(2, 8);
 
     // Topics Matching ESP8266 Architecture
@@ -231,7 +231,7 @@
             onSuccess: onConnect,
             onFailure: onFailure,
             keepAliveInterval: 30,
-            useSSL: true // Fixed: Forces encryption to satisfy GitHub Pages HTTPS requirement
+            useSSL: true 
         };
         client.connect(options);
     }
@@ -247,12 +247,14 @@
 
     function onFailure(message) {
         document.getElementById("status-text").innerText = "Connection Failed";
-        setTimeout(connectBroker, 5000); // Retry loop after 5 seconds
+        setTimeout(connectBroker, 5000); 
     }
 
     function onConnectionLost(responseObject) {
         document.getElementById("status-dot").className = "status-dot";
         document.getElementById("status-text").innerText = "Disconnected";
+        document.getElementById("pump-status").innerText = "Offline / Idle";
+        document.getElementById("pump-status").style.color = "var(--accent-red)";
         if (responseObject.errorCode !== 0) {
             setTimeout(connectBroker, 5000);
         }
@@ -260,11 +262,28 @@
 
     function onMessageArrived(message) {
         if (message.destinationName === TOPIC_STATUS) {
-            document.getElementById("pump-status").innerText = message.payloadString;
+            const payload = message.payloadString;
+            document.getElementById("pump-status").innerText = payload;
+            
+            // Dynamically balance colors based on module state outputs
+            if (payload === "Connected to Broker" || payload === "Ready for Operation") {
+                document.getElementById("pump-status").style.color = "var(--accent-green)";
+            } else if (payload.startsWith("Running")) {
+                document.getElementById("pump-status").style.color = "var(--accent-blue)";
+            } else {
+                document.getElementById("pump-status").style.color = "var(--accent-red)";
+            }
         }
         if (message.destinationName === TOPIC_SWITCH) {
             if(message.payloadString === "OFF") {
-                document.getElementById("pump-status").innerText = "Offline / Idle";
+                // If explicitly stopped, give it 1 second to check if it has a trailing state update
+                setTimeout(() => {
+                    const currentTxt = document.getElementById("pump-status").innerText;
+                    if(!currentTxt.includes("Connected to Broker") && !currentTxt.includes("Running")) {
+                        document.getElementById("pump-status").innerText = "Connected to Broker";
+                        document.getElementById("pump-status").style.color = "var(--accent-green)";
+                    }
+                }, 800);
             }
         }
     }
