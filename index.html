@@ -111,7 +111,7 @@
         }
 
         .monitor-value {
-            font-size: 1.5rem;
+            font-size: 1.35rem;
             font-weight: 800;
             margin-top: 6px;
         }
@@ -204,9 +204,10 @@
         </div>
     </div>
 
+    <!-- Set to startup with 0 default, minimum value 0 -->
     <div class="control-group">
         <label for="timer-input">Set Custom Run Time (Minutes)</label>
-        <input type="number" id="timer-input" min="1" max="120" value="10" placeholder="e.g. 10">
+        <input type="number" id="timer-input" min="0" max="120" value="0" placeholder="e.g. 10">
     </div>
 
     <div class="btn-stack">
@@ -220,7 +221,6 @@
     const MQTT_PORT = 8884; 
     const CLIENT_ID = "WebPanel_" + Math.random().toString(16).substr(2, 8);
 
-    // Updated with 'hrx' Unique Namespace Sub-Topic Structure
     const TOPIC_SWITCH = "hrx_ml_bsp_wlvl_9482/node_esp8266/io_exec_switch";
     const TOPIC_TIMER_SET = "hrx_ml_bsp_wlvl_9482/node_esp8266/config_runtime_min";
     const TOPIC_STATUS = "hrx_ml_bsp_wlvl_9482/node_esp8266/telemetry_link_status";
@@ -288,7 +288,7 @@
             const payload = message.payloadString;
             document.getElementById("pump-run-status").innerText = payload;
             
-            if (payload.startsWith("Running")) {
+            if (payload.includes("left out of")) {
                 document.getElementById("pump-run-status").style.color = "var(--accent-blue)";
             } else if (payload === "Idle") {
                 document.getElementById("pump-run-status").style.color = "var(--text-muted)";
@@ -300,7 +300,7 @@
 
     function startPump() {
         const timerValue = document.getElementById("timer-input").value;
-        if (!timerValue || timerValue <= 0) {
+        if (timerValue === "" || timerValue < 0) {
             alert("Please enter a valid time duration.");
             return;
         }
