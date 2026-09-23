@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>hrx_MehraLab_Bilaspur | Water Control Panel</title>
+    <title>HrX_Mehra_Lab_Water_Manegement_System</title>
     <!-- MQTT Over WebSockets Client Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
     <style>
@@ -37,24 +37,24 @@
             overflow-x: hidden;
         }
 
-        /* Entrance Animation */
+        /* Container Entrance Animation */
         .container {
             width: 100%;
-            max-width: 480px;
+            max-width: 440px;
             background: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 20px;
             padding: 28px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
-            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            animation: pageOpenScale 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        @keyframes fadeInUp {
-            from {
+        @keyframes pageOpenScale {
+            0% {
                 opacity: 0;
-                transform: translateY(20px) scale(0.98);
+                transform: translateY(20px) scale(0.96);
             }
-            to {
+            100% {
                 opacity: 1;
                 transform: translateY(0) scale(1);
             }
@@ -67,17 +67,45 @@
             padding-bottom: 16px;
         }
 
-        header h1 {
-            font-size: 1.4rem;
-            font-weight: 700;
-            letter-spacing: -0.025em;
-            color: var(--text-main);
+        /* RAINBOW TITLE STYLING */
+        header h1.rainbow-text {
+            font-size: 1.25rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            word-break: break-word;
+            background: linear-gradient(
+                90deg, 
+                #ff0000, 
+                #ff7f00, 
+                #ffff00, 
+                #00ff00, 
+                #00ffff, 
+                #0000ff, 
+                #8b00ff, 
+                #ff0000
+            );
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: rainbowShift 3s linear infinite;
         }
 
-        header p {
-            color: var(--text-muted);
-            font-size: 0.875rem;
-            margin-top: 4px;
+        @keyframes rainbowShift {
+            0% {
+                background-position: 0% center;
+            }
+            100% {
+                background-position: 200% center;
+            }
+        }
+
+        /* DUAL STATUS BAR (Web Link + Hardware ESP Internet Link) */
+        .status-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
         }
 
         .status-bar {
@@ -86,20 +114,25 @@
             align-items: center;
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
-            padding: 12px 16px;
+            padding: 10px 14px;
             border-radius: 12px;
-            margin-bottom: 20px;
-            font-size: 0.875rem;
+            font-size: 0.825rem;
+        }
+
+        .status-label {
+            color: var(--text-muted);
+            font-weight: 500;
         }
 
         .status-indicator {
             display: flex;
             align-items: center;
+            font-weight: 600;
         }
 
         .status-dot {
-            height: 10px;
-            width: 10px;
+            height: 9px;
+            width: 9px;
             border-radius: 50%;
             display: inline-block;
             background-color: var(--accent-red);
@@ -119,73 +152,22 @@
             100% { transform: scale(0.95); opacity: 0.7; }
         }
 
-        /* Animated Water Pump Visualizer Box */
-        .pump-visualizer {
-            height: 60px;
-            background: var(--panel-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .water-wave {
-            position: absolute;
-            bottom: -100%;
-            left: 0;
-            width: 200%;
-            height: 100%;
-            background: rgba(88, 166, 255, 0.2);
-            border-radius: 40%;
-            transition: bottom 0.8s ease;
-        }
-
-        .pump-visualizer.active .water-wave {
-            bottom: -20%;
-            animation: waveMove 4s linear infinite;
-        }
-
-        @keyframes waveMove {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .turbine-icon {
-            font-size: 1.5rem;
-            z-index: 2;
-            transition: transform 0.3s ease, color 0.3s ease;
-            color: var(--text-muted);
-        }
-
-        .pump-visualizer.active .turbine-icon {
-            color: var(--accent-blue);
-            animation: spin 1.2s linear infinite;
-        }
-
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
         .grid-monitor {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 14px;
+            gap: 12px;
             margin-bottom: 20px;
         }
 
         .monitor-panel {
             text-align: center;
             background: var(--panel-bg);
-            padding: 18px;
+            padding: 16px;
             border-radius: 16px;
             border: 1px solid var(--border-color);
-            transition: border-color 0.3s, transform 0.2s ease;
             position: relative;
+            overflow: hidden;
+            transition: border-color 0.4s ease, box-shadow 0.4s ease, transform 0.2s ease;
         }
 
         .monitor-panel:hover {
@@ -193,7 +175,7 @@
         }
 
         .monitor-label {
-            font-size: 0.825rem;
+            font-size: 0.78rem;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.05em;
@@ -201,10 +183,120 @@
         }
 
         .monitor-value {
-            font-size: 1.25rem;
+            font-size: 1.15rem;
             font-weight: 700;
-            margin-top: 6px;
+            margin-top: 4px;
             transition: color 0.3s ease;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* --- TWO-COLUMN TIME READOUT SPLIT --- */
+        .time-readout-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--border-color);
+        }
+
+        .time-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .time-sublabel {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .time-subvalue {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            margin-top: 2px;
+        }
+
+        /* --- RGB SIDE-ANIMATION INDICATORS --- */
+        .side-rgb {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #484f58;
+            opacity: 0.3;
+            transition: all 0.4s ease;
+        }
+
+        .side-rgb.left { left: 16px; }
+        .side-rgb.right { right: 16px; }
+
+        /* STATE 1: IDLE / STANDBY (Slow Soft Cyan Pulse) */
+        .monitor-panel.state-idle .side-rgb {
+            background: #38bdf8;
+            opacity: 0.8;
+            animation: rgbBreathe 3s infinite ease-in-out;
+        }
+
+        @keyframes rgbBreathe {
+            0%, 100% { transform: translateY(-50%) scale(0.85); box-shadow: 0 0 4px rgba(56, 189, 248, 0.4); }
+            50% { transform: translateY(-50%) scale(1.15); box-shadow: 0 0 12px rgba(56, 189, 248, 0.9); }
+        }
+
+        /* STATE 2: PUMP RUNNING (Fluid Dynamic Rainbow Shift Pattern) */
+        .monitor-panel.state-running {
+            border-color: rgba(56, 189, 248, 0.4);
+            box-shadow: inset 0 0 16px rgba(56, 189, 248, 0.1);
+        }
+
+        .monitor-panel.state-running .side-rgb {
+            opacity: 1;
+            animation: rgbSpectrumWave 2s infinite linear;
+        }
+
+        .monitor-panel.state-running .side-rgb.right {
+            animation-delay: -1s;
+        }
+
+        @keyframes rgbSpectrumWave {
+            0% {
+                background: #00f2fe;
+                box-shadow: 0 0 10px #00f2fe, 0 0 20px #00f2fe;
+                transform: translateY(-50%) scale(0.9);
+            }
+            33% {
+                background: #38ef7d;
+                box-shadow: 0 0 12px #38ef7d, 0 0 22px #38ef7d;
+                transform: translateY(-50%) scale(1.3);
+            }
+            66% {
+                background: #ff007f;
+                box-shadow: 0 0 12px #ff007f, 0 0 22px #ff007f;
+                transform: translateY(-50%) scale(0.9);
+            }
+            100% {
+                background: #00f2fe;
+                box-shadow: 0 0 10px #00f2fe, 0 0 20px #00f2fe;
+                transform: translateY(-50%) scale(0.9);
+            }
+        }
+
+        /* STATE 3: DISCONNECTED / ERROR (Rapid Red Strobe) */
+        .monitor-panel.state-error .side-rgb {
+            background: var(--accent-red);
+            opacity: 1;
+            animation: rgbAlert 0.8s infinite ease-in-out;
+        }
+
+        @keyframes rgbAlert {
+            0%, 100% { transform: translateY(-50%) scale(0.8); box-shadow: 0 0 2px var(--accent-red); }
+            50% { transform: translateY(-50%) scale(1.4); box-shadow: 0 0 14px var(--accent-red); }
         }
 
         .control-group {
@@ -255,8 +347,6 @@
             cursor: pointer;
             border: none;
             letter-spacing: 0.03em;
-            position: relative;
-            overflow: hidden;
             transition: all 0.25s ease;
         }
 
@@ -286,7 +376,6 @@
             transform: translateY(-2px);
         }
 
-        /* Pulse highlight on telemetry change */
         .flash-update {
             animation: pulse-border 0.6s ease;
         }
@@ -301,40 +390,56 @@
 
 <div class="container">
     <header>
-        <h1>System Control Panel</h1>
-        <p>hrx_MehraLab_Bilaspur Water Management Automation</p>
+        <h1 class="rainbow-text">HrX_Mehra_Lab_Water_Manegement_System</h1>
     </header>
 
-    <div class="status-bar">
-        <span>Web Dashboard Link:</span>
-        <div class="status-indicator">
-            <span id="status-dot" class="status-dot"></span>
-            <span id="status-text">Disconnected</span>
-        </div>
-    </div>
-
-    <!-- Interactive Visualizer -->
-    <div id="pump-visualizer" class="pump-visualizer">
-        <div class="water-wave"></div>
-        <div class="turbine-icon">⚙️</div>
-    </div>
-
-    <div class="grid-monitor">
-        <div class="monitor-panel" id="panel-network">
-            <div class="monitor-label">Pump Network Status</div>
-            <div id="pump-network-status" class="monitor-value" style="color: var(--accent-red);">Disconnected</div>
+    <!-- Dual Link Status Section -->
+    <div class="status-stack">
+        <!-- Web App Connection -->
+        <div class="status-bar">
+            <span class="status-label">Web Dashboard:</span>
+            <div class="status-indicator">
+                <span id="web-status-dot" class="status-dot"></span>
+                <span id="web-status-text" style="color: var(--accent-red);">Disconnected</span>
+            </div>
         </div>
         
-        <div class="monitor-panel" id="panel-run">
-            <div class="monitor-label">Current Run State</div>
-            <div id="pump-run-status" class="monitor-value" style="color: var(--text-muted);">Idle</div>
+        <!-- Hardware ESP / Internet Status -->
+        <div class="status-bar">
+            <span class="status-label">Pump Hardware (Wi-Fi/Internet):</span>
+            <div class="status-indicator">
+                <span id="pump-status-dot" class="status-dot"></span>
+                <span id="pump-status-text" style="color: var(--accent-red);">Offline</span>
+            </div>
         </div>
     </div>
 
-    <!-- Set to startup with 0 default, minimum value 0 -->
+    <!-- Integrated Monitor Panel with RGB FX and Dynamic Time Split -->
+    <div class="grid-monitor">
+        <div class="monitor-panel state-error" id="panel-network">
+            <div class="side-rgb left"></div>
+            <div class="monitor-label">Current Pump State</div>
+            <div id="pump-runtime-status" class="monitor-value" style="color: var(--accent-red);">Offline</div>
+            
+            <!-- Timer Readout Sub-Grid -->
+            <div class="time-readout-grid">
+                <div class="time-box">
+                    <span class="time-sublabel">Timer Set</span>
+                    <span id="timer-set-val" class="time-subvalue">-- min</span>
+                </div>
+                <div class="time-box">
+                    <span class="time-sublabel">Remaining</span>
+                    <span id="timer-remaining-val" class="time-subvalue" style="color: var(--text-muted);">00:00</span>
+                </div>
+            </div>
+            
+            <div class="side-rgb right"></div>
+        </div>
+    </div>
+
     <div class="control-group">
-        <label for="timer-input">Set Custom Run Time (Minutes)</label>
-        <input type="number" id="timer-input" min="0" max="120" value="0" placeholder="e.g. 10">
+        <label for="timer-input">Set Custom Run Time (1 - 60 Minutes)</label>
+        <input type="number" id="timer-input" min="1" max="60" value="" placeholder="Enter minutes (1 - 60)">
     </div>
 
     <div class="btn-stack">
@@ -355,6 +460,8 @@
 
     const client = new Paho.MQTT.Client(MQTT_HOST, Number(MQTT_PORT), CLIENT_ID);
 
+    let isPumpConnected = false;
+
     client.onConnectionLost = onConnectionLost;
     client.onMessageArrived = onMessageArrived;
 
@@ -373,42 +480,70 @@
     function triggerFlash(elementId) {
         const el = document.getElementById(elementId);
         el.classList.remove("flash-update");
-        void el.offsetWidth; // Trigger reflow
+        void el.offsetWidth;
         el.classList.add("flash-update");
     }
 
-    function setVisualizerActive(active) {
-        const vis = document.getElementById("pump-visualizer");
-        if (active) {
-            vis.classList.add("active");
+    function updateRGBPattern(state) {
+        const panel = document.getElementById("panel-network");
+        panel.classList.remove("state-idle", "state-running", "state-error");
+        
+        if (state === "running") {
+            panel.classList.add("state-running");
+        } else if (state === "idle") {
+            panel.classList.add("state-idle");
         } else {
-            vis.classList.remove("active");
+            panel.classList.add("state-error");
+        }
+    }
+
+    function updatePumpHardwareUI(online) {
+        isPumpConnected = online;
+        const dot = document.getElementById("pump-status-dot");
+        const txt = document.getElementById("pump-status-text");
+        
+        if (online) {
+            dot.className = "status-dot connected";
+            txt.innerText = "Online (Connected)";
+            txt.style.color = "var(--accent-green)";
+        } else {
+            dot.className = "status-dot";
+            txt.innerText = "Offline (No Internet / Off)";
+            txt.style.color = "var(--accent-red)";
+            document.getElementById("pump-runtime-status").innerText = "Offline";
+            document.getElementById("pump-runtime-status").style.color = "var(--accent-red)";
+            document.getElementById("timer-remaining-val").innerText = "00:00";
+            document.getElementById("timer-remaining-val").style.color = "var(--text-muted)";
+            updateRGBPattern("error");
         }
     }
 
     function onConnect() {
-        document.getElementById("status-dot").className = "status-dot connected";
-        document.getElementById("status-text").innerText = "Connected";
+        document.getElementById("web-status-dot").className = "status-dot connected";
+        const webTxt = document.getElementById("web-status-text");
+        webTxt.innerText = "Connected";
+        webTxt.style.color = "var(--accent-green)";
         
         client.subscribe(TOPIC_STATUS);
         client.subscribe(TOPIC_TELEMETRY);
     }
 
     function onFailure(message) {
-        document.getElementById("status-text").innerText = "Connection Failed";
+        const webTxt = document.getElementById("web-status-text");
+        webTxt.innerText = "Connection Failed";
+        webTxt.style.color = "var(--accent-red)";
+        document.getElementById("web-status-dot").className = "status-dot";
+        updatePumpHardwareUI(false);
         setTimeout(connectBroker, 3000); 
     }
 
     function onConnectionLost(responseObject) {
-        document.getElementById("status-dot").className = "status-dot";
-        document.getElementById("status-text").innerText = "Disconnected";
+        document.getElementById("web-status-dot").className = "status-dot";
+        const webTxt = document.getElementById("web-status-text");
+        webTxt.innerText = "Disconnected";
+        webTxt.style.color = "var(--accent-red)";
         
-        document.getElementById("pump-network-status").innerText = "Disconnected";
-        document.getElementById("pump-network-status").style.color = "var(--accent-red)";
-        document.getElementById("pump-run-status").innerText = "Unknown";
-        document.getElementById("pump-run-status").style.color = "var(--text-muted)";
-        
-        setVisualizerActive(false);
+        updatePumpHardwareUI(false);
 
         if (responseObject.errorCode !== 0) {
             setTimeout(connectBroker, 3000);
@@ -416,62 +551,103 @@
     }
 
     function onMessageArrived(message) {
+        // Evaluate hardware telemetry connection link status (ESP LWT / Online messages)
         if (message.destinationName === TOPIC_STATUS) {
-            const payload = message.payloadString;
-            document.getElementById("pump-network-status").innerText = payload;
+            const payload = message.payloadString.trim();
             triggerFlash("panel-network");
             
-            if (payload === "Connected to Broker") {
-                document.getElementById("pump-network-status").style.color = "var(--accent-green)";
+            if (payload === "Connected to Broker" || payload === "Online") {
+                updatePumpHardwareUI(true);
             } else {
-                document.getElementById("pump-network-status").style.color = "var(--accent-red)";
-                document.getElementById("pump-run-status").innerText = "Offline";
-                document.getElementById("pump-run-status").style.color = "var(--text-muted)";
-                setVisualizerActive(false);
+                updatePumpHardwareUI(false);
             }
         }
         
+        // Evaluate active runtime status
         if (message.destinationName === TOPIC_TELEMETRY) {
-            const payload = message.payloadString;
-            document.getElementById("pump-run-status").innerText = payload;
-            triggerFlash("panel-run");
+            const payload = message.payloadString.trim();
+            triggerFlash("panel-network");
             
-            if (payload.includes("left out of")) {
-                document.getElementById("pump-run-status").style.color = "var(--accent-blue)";
-                setVisualizerActive(true);
-            } else if (payload === "Idle") {
-                document.getElementById("pump-run-status").style.color = "var(--text-muted)";
-                setVisualizerActive(false);
+            // Received telemetry confirms pump ESP8266 is active online
+            if (!isPumpConnected) {
+                updatePumpHardwareUI(true);
+            }
+
+            if (payload.includes("left out of") || payload.includes("min")) {
+                document.getElementById("pump-runtime-status").innerText = "Pump Active";
+                document.getElementById("pump-runtime-status").style.color = "var(--accent-blue)";
+                
+                // Parse timer values
+                const parts = payload.split("left out of");
+                if (parts.length === 2) {
+                    const remainingStr = parts[0].trim();
+                    const setStr = parts[1].trim();
+                    
+                    document.getElementById("timer-remaining-val").innerText = remainingStr;
+                    document.getElementById("timer-remaining-val").style.color = "var(--accent-green)";
+                    document.getElementById("timer-set-val").innerText = setStr;
+                } else {
+                    document.getElementById("timer-remaining-val").innerText = payload;
+                }
+                
+                updateRGBPattern("running");
+            } else if (payload === "Idle" || payload === "OFF") {
+                document.getElementById("pump-runtime-status").innerText = "Idle";
+                document.getElementById("pump-runtime-status").style.color = "var(--accent-green)";
+                document.getElementById("timer-remaining-val").innerText = "00:00";
+                document.getElementById("timer-remaining-val").style.color = "var(--text-muted)";
+                updateRGBPattern("idle");
             } else {
-                document.getElementById("pump-run-status").style.color = "var(--accent-green)";
-                setVisualizerActive(true);
+                updateRGBPattern("error");
             }
         }
     }
 
     function startPump() {
-        const timerValue = document.getElementById("timer-input").value;
-        if (timerValue === "" || timerValue < 0) {
-            alert("Please enter a valid time duration.");
+        if (!isPumpConnected) {
+            alert("Pump hardware is currently Offline / Disconnected from Internet. Commands cannot be sent.");
             return;
         }
 
+        let timerInput = document.getElementById("timer-input");
+        let timerValue = parseInt(timerInput.value, 10);
+
+        if (isNaN(timerValue) || timerValue <= 0) {
+            alert("Please enter a valid timer duration (1 to 60 minutes) before starting.");
+            return;
+        }
+
+        if (timerValue > 60) {
+            timerValue = 60;
+            timerInput.value = 60;
+        }
+
+        document.getElementById("timer-set-val").innerText = timerValue + " min";
+
         const timerMessage = new Paho.MQTT.Message(timerValue.toString());
         timerMessage.destinationName = TOPIC_TIMER_SET;
-        timerMessage.qos = 1;
+        timerMessage.qos = 0;
         client.send(timerMessage);
 
         const switchMessage = new Paho.MQTT.Message("ON");
         switchMessage.destinationName = TOPIC_SWITCH;
-        switchMessage.qos = 1;
+        switchMessage.qos = 0;
         client.send(switchMessage);
     }
 
     function stopPump() {
+        if (!isPumpConnected) {
+            alert("Pump hardware is currently Offline / Disconnected from Internet.");
+            return;
+        }
+
         const message = new Paho.MQTT.Message("OFF");
         message.destinationName = TOPIC_SWITCH;
-        message.qos = 1;
+        message.qos = 0;
         client.send(message);
+        
+        document.getElementById("timer-remaining-val").innerText = "00:00";
+        document.getElementById("timer-remaining-val").style.color = "var(--text-muted)";
     }
 </script>
 </body>
