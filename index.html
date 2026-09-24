@@ -91,12 +91,8 @@
         }
 
         @keyframes rainbowShift {
-            0% {
-                background-position: 0% center;
-            }
-            100% {
-                background-position: 200% center;
-            }
+            0% { background-position: 0% center; }
+            100% { background-position: 200% center; }
         }
 
         .status-stack {
@@ -443,6 +439,7 @@
     const MQTT_PORT = 8884; 
     const CLIENT_ID = "WebPanel_" + Math.random().toString(16).substr(2, 8);
 
+    // Synchronized MQTT Topics matching ESP8266 Firmware
     const TOPIC_SWITCH = "hrx_ml_bsp_wlvl_9482/node_esp8266/io_exec_switch";
     const TOPIC_TIMER_SET = "hrx_ml_bsp_wlvl_9482/node_esp8266/config_runtime_min";
     const TOPIC_STATUS = "hrx_ml_bsp_wlvl_9482/node_esp8266/telemetry_link_status";
@@ -452,7 +449,7 @@
 
     let isPumpConnected = false;
     let heartbeatTimer = null;
-    const HEARTBEAT_TIMEOUT_MS = 3000; // 3-second watchdog timeout
+    const HEARTBEAT_TIMEOUT_MS = 6000; // Watchdog safety timeout matching ESP8266 5s telemetry interval
 
     client.onConnectionLost = onConnectionLost;
     client.onMessageArrived = onMessageArrived;
@@ -577,6 +574,7 @@
                 updatePumpHardwareUI(true);
             }
 
+            // Parsing telemetry: "MM:SS left out of XX min"
             if (payload.includes("left out of") || payload.includes("min")) {
                 document.getElementById("pump-runtime-status").innerText = "Pump Active";
                 document.getElementById("pump-runtime-status").style.color = "var(--accent-blue)";
@@ -629,6 +627,7 @@
 
         document.getElementById("timer-set-val").innerText = timerValue + " min";
 
+        // Publish configuration runtime first, then trigger switch execution
         const timerMessage = new Paho.MQTT.Message(timerValue.toString());
         timerMessage.destinationName = TOPIC_TIMER_SET;
         timerMessage.qos = 0;
