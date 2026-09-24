@@ -37,7 +37,6 @@
             overflow-x: hidden;
         }
 
-        /* Container Entrance Animation */
         .container {
             width: 100%;
             max-width: 440px;
@@ -67,7 +66,6 @@
             padding-bottom: 16px;
         }
 
-        /* TWO-LINE RAINBOW TITLE STYLING */
         header h1.rainbow-text {
             font-size: 1.35rem;
             font-weight: 800;
@@ -101,7 +99,6 @@
             }
         }
 
-        /* DUAL STATUS BAR (Web Link + Hardware ESP Internet Link) */
         .status-stack {
             display: flex;
             flex-direction: column;
@@ -192,7 +189,6 @@
             z-index: 2;
         }
 
-        /* --- TWO-COLUMN TIME READOUT SPLIT --- */
         .time-readout-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -222,7 +218,6 @@
             margin-top: 2px;
         }
 
-        /* --- RGB SIDE-ANIMATION INDICATORS --- */
         .side-rgb {
             position: absolute;
             top: 50%;
@@ -238,7 +233,6 @@
         .side-rgb.left { left: 16px; }
         .side-rgb.right { right: 16px; }
 
-        /* STATE 1: IDLE / STANDBY (Slow Soft Cyan Pulse) */
         .monitor-panel.state-idle .side-rgb {
             background: #38bdf8;
             opacity: 0.8;
@@ -250,7 +244,6 @@
             50% { transform: translateY(-50%) scale(1.15); box-shadow: 0 0 12px rgba(56, 189, 248, 0.9); }
         }
 
-        /* STATE 2: PUMP RUNNING (Fluid Dynamic Rainbow Shift Pattern) */
         .monitor-panel.state-running {
             border-color: rgba(56, 189, 248, 0.4);
             box-shadow: inset 0 0 16px rgba(56, 189, 248, 0.1);
@@ -288,7 +281,6 @@
             }
         }
 
-        /* STATE 3: DISCONNECTED / ERROR (Rapid Red Strobe) */
         .monitor-panel.state-error .side-rgb {
             background: var(--accent-red);
             opacity: 1;
@@ -392,13 +384,11 @@
 <div class="container">
     <header>
         <h1 class="rainbow-text">
-            HrX_Mehra_Lab<br>Water_Manegement_System
+            HrX_Mehra_Lab<br>Water_Management_System
         </h1>
     </header>
 
-    <!-- Dual Link Status Section -->
     <div class="status-stack">
-        <!-- Web App Connection -->
         <div class="status-bar">
             <span class="status-label">Web Dashboard:</span>
             <div class="status-indicator">
@@ -407,7 +397,6 @@
             </div>
         </div>
         
-        <!-- Hardware ESP / Internet Status -->
         <div class="status-bar">
             <span class="status-label">Pump Hardware (Wi-Fi/Internet):</span>
             <div class="status-indicator">
@@ -417,14 +406,12 @@
         </div>
     </div>
 
-    <!-- Integrated Monitor Panel with RGB FX and Dynamic Time Split -->
     <div class="grid-monitor">
         <div class="monitor-panel state-error" id="panel-network">
             <div class="side-rgb left"></div>
             <div class="monitor-label">Current Pump State</div>
             <div id="pump-runtime-status" class="monitor-value" style="color: var(--accent-red);">Offline</div>
             
-            <!-- Timer Readout Sub-Grid -->
             <div class="time-readout-grid">
                 <div class="time-box">
                     <span class="time-sublabel">Timer Set</span>
@@ -464,6 +451,8 @@
     const client = new Paho.MQTT.Client(MQTT_HOST, Number(MQTT_PORT), CLIENT_ID);
 
     let isPumpConnected = false;
+    let heartbeatTimer = null;
+    const HEARTBEAT_TIMEOUT_MS = 3000; // 3-second watchdog timeout
 
     client.onConnectionLost = onConnectionLost;
     client.onMessageArrived = onMessageArrived;
@@ -485,6 +474,19 @@
         el.classList.remove("flash-update");
         void el.offsetWidth;
         el.classList.add("flash-update");
+    }
+
+    function resetTimerDisplay() {
+        document.getElementById("timer-set-val").innerText = "-- min";
+        document.getElementById("timer-remaining-val").innerText = "00:00";
+        document.getElementById("timer-remaining-val").style.color = "var(--text-muted)";
+    }
+
+    function resetHeartbeat() {
+        if (heartbeatTimer) clearTimeout(heartbeatTimer);
+        heartbeatTimer = setTimeout(() => {
+            updatePumpHardwareUI(false);
+        }, HEARTBEAT_TIMEOUT_MS);
     }
 
     function updateRGBPattern(state) {
@@ -515,9 +517,9 @@
             txt.style.color = "var(--accent-red)";
             document.getElementById("pump-runtime-status").innerText = "Offline";
             document.getElementById("pump-runtime-status").style.color = "var(--accent-red)";
-            document.getElementById("timer-remaining-val").innerText = "00:00";
-            document.getElementById("timer-remaining-val").style.color = "var(--text-muted)";
+            resetTimerDisplay();
             updateRGBPattern("error");
+            if (heartbeatTimer) clearTimeout(heartbeatTimer);
         }
     }
 
@@ -554,7 +556,8 @@
     }
 
     function onMessageArrived(message) {
-        // Evaluate hardware telemetry connection link status (ESP LWT / Online messages)
+        resetHeartbeat();
+
         if (message.destinationName === TOPIC_STATUS) {
             const payload = message.payloadString.trim();
             triggerFlash("panel-network");
@@ -566,12 +569,10 @@
             }
         }
         
-        // Evaluate active runtime status
         if (message.destinationName === TOPIC_TELEMETRY) {
             const payload = message.payloadString.trim();
             triggerFlash("panel-network");
             
-            // Received telemetry confirms pump ESP8266 is active online
             if (!isPumpConnected) {
                 updatePumpHardwareUI(true);
             }
@@ -580,7 +581,6 @@
                 document.getElementById("pump-runtime-status").innerText = "Pump Active";
                 document.getElementById("pump-runtime-status").style.color = "var(--accent-blue)";
                 
-                // Parse timer values
                 const parts = payload.split("left out of");
                 if (parts.length === 2) {
                     const remainingStr = parts[0].trim();
@@ -597,8 +597,7 @@
             } else if (payload === "Idle" || payload === "OFF") {
                 document.getElementById("pump-runtime-status").innerText = "Idle";
                 document.getElementById("pump-runtime-status").style.color = "var(--accent-green)";
-                document.getElementById("timer-remaining-val").innerText = "00:00";
-                document.getElementById("timer-remaining-val").style.color = "var(--text-muted)";
+                resetTimerDisplay();
                 updateRGBPattern("idle");
             } else {
                 updateRGBPattern("error");
@@ -623,6 +622,9 @@
         if (timerValue > 60) {
             timerValue = 60;
             timerInput.value = 60;
+        } else if (timerValue < 1) {
+            timerValue = 1;
+            timerInput.value = 1;
         }
 
         document.getElementById("timer-set-val").innerText = timerValue + " min";
@@ -649,8 +651,7 @@
         message.qos = 0;
         client.send(message);
         
-        document.getElementById("timer-remaining-val").innerText = "00:00";
-        document.getElementById("timer-remaining-val").style.color = "var(--text-muted)";
+        resetTimerDisplay();
     }
 </script>
 </body>
