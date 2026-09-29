@@ -627,16 +627,20 @@
 
         document.getElementById("timer-set-val").innerText = timerValue + " min";
 
-        // Publish configuration runtime first, then trigger switch execution
+        // 1. Publish timer configuration first with retained flag enabled
         const timerMessage = new Paho.MQTT.Message(timerValue.toString());
         timerMessage.destinationName = TOPIC_TIMER_SET;
         timerMessage.qos = 0;
+        timerMessage.retained = true;
         client.send(timerMessage);
 
-        const switchMessage = new Paho.MQTT.Message("ON");
-        switchMessage.destinationName = TOPIC_SWITCH;
-        switchMessage.qos = 0;
-        client.send(switchMessage);
+        // 2. Delay the ON execution by 150ms to guarantee ESP8266 reads timer value first
+        setTimeout(() => {
+            const switchMessage = new Paho.MQTT.Message("ON");
+            switchMessage.destinationName = TOPIC_SWITCH;
+            switchMessage.qos = 0;
+            client.send(switchMessage);
+        }, 150);
     }
 
     function stopPump() {
