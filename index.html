@@ -113,6 +113,41 @@
             font-size: 0.825rem;
         }
 
+        .split-bar {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        .split-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 10px;
+            text-align: center;
+        }
+
+        .split-cell:first-child {
+            border-right: 1px solid var(--border-color);
+        }
+
+        .split-sublabel {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-bottom: 3px;
+        }
+
+        .split-subval {
+            font-size: 0.88rem;
+            font-weight: 700;
+        }
+
         .status-label {
             color: var(--text-muted);
             font-weight: 500;
@@ -144,6 +179,27 @@
             0% { transform: scale(0.95); opacity: 0.7; }
             50% { transform: scale(1.3); opacity: 1; }
             100% { transform: scale(0.95); opacity: 0.7; }
+        }
+
+        .btn-check {
+            background: rgba(88, 166, 255, 0.14);
+            color: var(--accent-blue);
+            border: 1px solid rgba(88, 166, 255, 0.45);
+            padding: 5px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-check:hover {
+            background: rgba(88, 166, 255, 0.28);
+            transform: translateY(-1px);
+        }
+
+        .btn-check:active {
+            transform: translateY(1px);
         }
 
         .grid-monitor {
@@ -400,6 +456,25 @@
                 <span id="pump-status-text" style="color: var(--accent-red);">Offline</span>
             </div>
         </div>
+
+        <div class="status-bar split-bar">
+            <div class="split-cell">
+                <span class="split-sublabel">Ping Latency</span>
+                <span id="ping-latency-val" class="split-subval" style="color: var(--text-muted);">-- ms</span>
+            </div>
+            <div class="split-cell">
+                <span class="split-sublabel">ESP8266 Wi-Fi Signal</span>
+                <span id="wifi-signal-val" class="split-subval" style="color: var(--text-muted);">-- dBm</span>
+            </div>
+        </div>
+
+        <div class="status-bar">
+            <span class="status-label">Board Time:</span>
+            <div class="status-indicator" style="gap: 10px;">
+                <span id="board-time-val" style="color: var(--text-muted);">--:--:--</span>
+                <button type="button" class="btn-check" onclick="manualCheckBoard()">Check Now</button>
+            </div>
+        </div>
     </div>
 
     <div class="grid-monitor">
@@ -439,21 +514,33 @@
     const MQTT_PORT = 8884; 
     const CLIENT_ID = "WebPanel_" + Math.random().toString(16).substr(2, 8);
 
-    // Synchronized MQTT Topics matching ESP8266 Firmware
-    const TOPIC_SWITCH = "hrx_ml_bsp_wlvl_9482/node_esp8266/io_exec_switch";
-    const TOPIC_TIMER_SET = "hrx_ml_bsp_wlvl_9482/node_esp8266/config_runtime_min";
-    const TOPIC_STATUS = "hrx_ml_bsp_wlvl_9482/node_esp8266/telemetry_link_status";
-    const TOPIC_TELEMETRY = "hrx_ml_bsp_wlvl_9482/node_esp8266/telemetry_runtime_state";
+    // Isolated Non-Overlapping MQTT Topics matching ESP8266 Firmware
+    const TOPIC_PREFIX = "hrx_ml_bsp_wlvl_9482/esp8266_pump_ctrl_v2";
+    const TOPIC_SWITCH = TOPIC_PREFIX + "/cmd/relay_switch";
+    const TOPIC_TIMER_SET = TOPIC_PREFIX + "/cfg/run_duration_min";
+    const TOPIC_PING = TOPIC_PREFIX + "/cmd/link_ping_nonce";
+    const TOPIC_STATUS = TOPIC_PREFIX + "/tele/link_pong_state";
+    const TOPIC_TELEMETRY = TOPIC_PREFIX + "/tele/pump_timer_state";
+    const TOPIC_BOARD_TIME = TOPIC_PREFIX + "/tele/ntp_clock_hhmmss";
+    const TOPIC_WIFI_RSSI = TOPIC_PREFIX + "/tele/sta_wifi_rssi_dbm";
 
     const client = new Paho.MQTT.Client(MQTT_HOST, Number(MQTT_PORT), CLIENT_ID);
 
-    let isPumpConnected = false;
+    let isBrokerConnected = false;
+    let isBoardConfirmed = false;
+    let activeNonce = null;
+    let pingSentAt = 0;
     let heartbeatTimer = null;
-    const HEARTBEAT_TIMEOUT_MS = 6000; // Watchdog safety timeout matching ESP8266 5s telemetry interval
+    let pingInterval = null;
+
+    const HEARTBEAT_TIMEOUT_MS = 4500;
+    const PING_INTERVAL_MS = 3000;
 
     client.onConnectionLost = onConnectionLost;
     client.onMessageArrived = onMessageArrived;
 
+    // Strictly Offline until a live PONG / board response arrives
+    setBoardOffline("Offline");
     connectBroker();
 
     function connectBroker() {
@@ -464,6 +551,39 @@
             useSSL: true 
         };
         client.connect(options);
+    }
+
+    function sendPingProbe() {
+        if (!isBrokerConnected) return;
+        activeNonce = Math.floor(100000 + Math.random() * 900000).toString();
+        pingSentAt = performance.now();
+        const pingMsg = new Paho.MQTT.Message("PING:" + activeNonce);
+        pingMsg.destinationName = TOPIC_PING;
+        pingMsg.qos = 0;
+        client.send(pingMsg);
+    }
+
+    function manualCheckBoard() {
+        if (!isBrokerConnected) {
+            alert("Web Dashboard is not connected to the MQTT broker yet.");
+            return;
+        }
+        setBoardOffline("Offline (Checking...)");
+        sendPingProbe();
+        resetHeartbeat();
+    }
+
+    function startPingLoop() {
+        stopPingLoop();
+        sendPingProbe();
+        pingInterval = setInterval(sendPingProbe, PING_INTERVAL_MS);
+    }
+
+    function stopPingLoop() {
+        if (pingInterval) {
+            clearInterval(pingInterval);
+            pingInterval = null;
+        }
     }
 
     function triggerFlash(elementId) {
@@ -479,10 +599,61 @@
         document.getElementById("timer-remaining-val").style.color = "var(--text-muted)";
     }
 
+    function resetBoardTimeDisplay() {
+        document.getElementById("board-time-val").innerText = "--:--:--";
+        document.getElementById("board-time-val").style.color = "var(--text-muted)";
+    }
+
+    function resetLatencyDisplay() {
+        const el = document.getElementById("ping-latency-val");
+        el.innerText = "-- ms";
+        el.style.color = "var(--text-muted)";
+    }
+
+    function resetWifiSignalDisplay() {
+        const el = document.getElementById("wifi-signal-val");
+        el.innerText = "-- dBm";
+        el.style.color = "var(--text-muted)";
+    }
+
+    function updateLatencyDisplay(rttMs) {
+        const el = document.getElementById("ping-latency-val");
+        const rounded = Math.max(1, Math.round(rttMs));
+        el.innerText = rounded + " ms";
+        if (rounded < 250) {
+            el.style.color = "var(--accent-green)";
+        } else if (rounded < 800) {
+            el.style.color = "var(--accent-blue)";
+        } else {
+            el.style.color = "var(--accent-red)";
+        }
+    }
+
+    function updateWifiSignalDisplay(payload) {
+        const el = document.getElementById("wifi-signal-val");
+        const rssiNum = parseInt(payload, 10);
+        if (isNaN(rssiNum)) {
+            el.innerText = payload;
+            el.style.color = "var(--text-muted)";
+            return;
+        }
+        let quality = "Weak";
+        let color = "var(--accent-red)";
+        if (rssiNum >= -60) {
+            quality = "Strong";
+            color = "var(--accent-green)";
+        } else if (rssiNum >= -75) {
+            quality = "Fair";
+            color = "var(--accent-blue)";
+        }
+        el.innerText = rssiNum + " dBm (" + quality + ")";
+        el.style.color = color;
+    }
+
     function resetHeartbeat() {
         if (heartbeatTimer) clearTimeout(heartbeatTimer);
         heartbeatTimer = setTimeout(() => {
-            updatePumpHardwareUI(false);
+            setBoardOffline("Offline (No Response)");
         }, HEARTBEAT_TIMEOUT_MS);
     }
 
@@ -499,53 +670,77 @@
         }
     }
 
-    function updatePumpHardwareUI(online) {
-        isPumpConnected = online;
+    function setBoardOffline(offlineText = "Offline") {
+        isBoardConfirmed = false;
         const dot = document.getElementById("pump-status-dot");
         const txt = document.getElementById("pump-status-text");
-        
-        if (online) {
-            dot.className = "status-dot connected";
-            txt.innerText = "Online (Connected)";
-            txt.style.color = "var(--accent-green)";
-        } else {
-            dot.className = "status-dot";
-            txt.innerText = "Offline (No Internet / Off)";
-            txt.style.color = "var(--accent-red)";
-            document.getElementById("pump-runtime-status").innerText = "Offline";
-            document.getElementById("pump-runtime-status").style.color = "var(--accent-red)";
-            resetTimerDisplay();
-            updateRGBPattern("error");
-            if (heartbeatTimer) clearTimeout(heartbeatTimer);
+        dot.className = "status-dot";
+        txt.innerText = offlineText;
+        txt.style.color = offlineText.includes("Checking") ? "var(--accent-blue)" : "var(--accent-red)";
+
+        document.getElementById("pump-runtime-status").innerText = offlineText.includes("Checking") ? "Checking..." : "Offline";
+        document.getElementById("pump-runtime-status").style.color = offlineText.includes("Checking") ? "var(--accent-blue)" : "var(--accent-red)";
+        resetTimerDisplay();
+        resetBoardTimeDisplay();
+        resetLatencyDisplay();
+        resetWifiSignalDisplay();
+        updateRGBPattern("error");
+        if (heartbeatTimer) {
+            clearTimeout(heartbeatTimer);
+            heartbeatTimer = null;
         }
     }
 
+    function confirmBoardOnline(rttMs = null) {
+        isBoardConfirmed = true;
+        const dot = document.getElementById("pump-status-dot");
+        const txt = document.getElementById("pump-status-text");
+        dot.className = "status-dot connected";
+        txt.innerText = "Online (Confirmed)";
+        txt.style.color = "var(--accent-green)";
+        if (rttMs !== null) {
+            updateLatencyDisplay(rttMs);
+        }
+        resetHeartbeat();
+    }
+
     function onConnect() {
+        isBrokerConnected = true;
         document.getElementById("web-status-dot").className = "status-dot connected";
         const webTxt = document.getElementById("web-status-text");
         webTxt.innerText = "Connected";
         webTxt.style.color = "var(--accent-green)";
-        
+
+        setBoardOffline("Offline (Checking...)");
+
         client.subscribe(TOPIC_STATUS);
         client.subscribe(TOPIC_TELEMETRY);
+        client.subscribe(TOPIC_BOARD_TIME);
+        client.subscribe(TOPIC_WIFI_RSSI);
+
+        startPingLoop();
     }
 
     function onFailure(message) {
+        isBrokerConnected = false;
+        stopPingLoop();
         const webTxt = document.getElementById("web-status-text");
         webTxt.innerText = "Connection Failed";
         webTxt.style.color = "var(--accent-red)";
         document.getElementById("web-status-dot").className = "status-dot";
-        updatePumpHardwareUI(false);
+        setBoardOffline("Offline");
         setTimeout(connectBroker, 3000); 
     }
 
     function onConnectionLost(responseObject) {
+        isBrokerConnected = false;
+        stopPingLoop();
         document.getElementById("web-status-dot").className = "status-dot";
         const webTxt = document.getElementById("web-status-text");
         webTxt.innerText = "Disconnected";
         webTxt.style.color = "var(--accent-red)";
         
-        updatePumpHardwareUI(false);
+        setBoardOffline("Offline");
 
         if (responseObject.errorCode !== 0) {
             setTimeout(connectBroker, 3000);
@@ -553,28 +748,51 @@
     }
 
     function onMessageArrived(message) {
-        resetHeartbeat();
+        const topic = message.destinationName;
+        const payload = message.payloadString.trim();
 
-        if (message.destinationName === TOPIC_STATUS) {
-            const payload = message.payloadString.trim();
-            triggerFlash("panel-network");
-            
-            if (payload === "Connected to Broker" || payload === "Online") {
-                updatePumpHardwareUI(true);
-            } else {
-                updatePumpHardwareUI(false);
+        if (payload.length === 0) return;
+
+        if (topic === TOPIC_STATUS) {
+            if (payload === "OFFLINE") {
+                setBoardOffline("Offline");
+                return;
             }
+
+            if (payload.startsWith("PONG:")) {
+                const replyNonce = payload.substring(5);
+                const nowPerf = performance.now();
+                const elapsedMs = pingSentAt > 0 ? (nowPerf - pingSentAt) : null;
+
+                if (replyNonce === activeNonce || replyNonce === "BOOT" || (elapsedMs !== null && elapsedMs <= PING_INTERVAL_MS + 1000)) {
+                    triggerFlash("panel-network");
+                    confirmBoardOnline(elapsedMs);
+                }
+            }
+            return;
+        }
+
+        if (topic === TOPIC_WIFI_RSSI) {
+            if (!isBoardConfirmed) return;
+            resetHeartbeat();
+            updateWifiSignalDisplay(payload);
+            return;
+        }
+
+        if (topic === TOPIC_BOARD_TIME) {
+            if (!isBoardConfirmed) return;
+            resetHeartbeat();
+            const timeEl = document.getElementById("board-time-val");
+            timeEl.innerText = payload;
+            timeEl.style.color = "var(--accent-blue)";
+            return;
         }
         
-        if (message.destinationName === TOPIC_TELEMETRY) {
-            const payload = message.payloadString.trim();
+        if (topic === TOPIC_TELEMETRY) {
+            if (!isBoardConfirmed) return;
             triggerFlash("panel-network");
-            
-            if (!isPumpConnected) {
-                updatePumpHardwareUI(true);
-            }
+            resetHeartbeat();
 
-            // Parsing telemetry: "MM:SS left out of XX min"
             if (payload.includes("left out of") || payload.includes("min")) {
                 document.getElementById("pump-runtime-status").innerText = "Pump Active";
                 document.getElementById("pump-runtime-status").style.color = "var(--accent-blue)";
@@ -604,8 +822,8 @@
     }
 
     function startPump() {
-        if (!isPumpConnected) {
-            alert("Pump hardware is currently Offline / Disconnected from Internet. Commands cannot be sent.");
+        if (!isBoardConfirmed) {
+            alert("Pump hardware is not confirmed Online yet. Commands cannot be sent.");
             return;
         }
 
@@ -627,14 +845,12 @@
 
         document.getElementById("timer-set-val").innerText = timerValue + " min";
 
-        // 1. Publish timer configuration first with retained flag enabled
         const timerMessage = new Paho.MQTT.Message(timerValue.toString());
         timerMessage.destinationName = TOPIC_TIMER_SET;
         timerMessage.qos = 0;
         timerMessage.retained = true;
         client.send(timerMessage);
 
-        // 2. Delay the ON execution by 150ms to guarantee ESP8266 reads timer value first
         setTimeout(() => {
             const switchMessage = new Paho.MQTT.Message("ON");
             switchMessage.destinationName = TOPIC_SWITCH;
@@ -644,8 +860,8 @@
     }
 
     function stopPump() {
-        if (!isPumpConnected) {
-            alert("Pump hardware is currently Offline / Disconnected from Internet.");
+        if (!isBoardConfirmed) {
+            alert("Pump hardware is not confirmed Online yet.");
             return;
         }
 
