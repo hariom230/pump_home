@@ -510,8 +510,9 @@
 </div>
 
 <script>
-    const MQTT_HOST = "broker.hivemq.com"; 
-    const MQTT_PORT = 8884; 
+    const MQTT_HOST = "broker.emqx.io"; 
+    const MQTT_PORT = 8084;
+    const MQTT_PATH = "/mqtt";
     const CLIENT_ID = "WebPanel_" + Math.random().toString(16).substr(2, 8);
 
     // Isolated Non-Overlapping MQTT Topics matching ESP8266 Firmware
@@ -524,7 +525,7 @@
     const TOPIC_BOARD_TIME = TOPIC_PREFIX + "/tele/ntp_clock_hhmmss";
     const TOPIC_WIFI_RSSI = TOPIC_PREFIX + "/tele/sta_wifi_rssi_dbm";
 
-    const client = new Paho.MQTT.Client(MQTT_HOST, Number(MQTT_PORT), CLIENT_ID);
+    const client = new Paho.MQTT.Client(MQTT_HOST, Number(MQTT_PORT), MQTT_PATH, CLIENT_ID);
 
     let isBrokerConnected = false;
     let isBoardConfirmed = false;
@@ -533,7 +534,7 @@
     let heartbeatTimer = null;
     let pingInterval = null;
 
-    const HEARTBEAT_TIMEOUT_MS = 4500;
+    const HEARTBEAT_TIMEOUT_MS = 5000;
     const PING_INTERVAL_MS = 3000;
 
     client.onConnectionLost = onConnectionLost;
@@ -559,7 +560,7 @@
         pingSentAt = performance.now();
         const pingMsg = new Paho.MQTT.Message("PING:" + activeNonce);
         pingMsg.destinationName = TOPIC_PING;
-        pingMsg.qos = 0;
+        pingMsg.qos = 1;
         client.send(pingMsg);
     }
 
@@ -764,7 +765,7 @@
                 const nowPerf = performance.now();
                 const elapsedMs = pingSentAt > 0 ? (nowPerf - pingSentAt) : null;
 
-                if (replyNonce === activeNonce || replyNonce === "BOOT" || (elapsedMs !== null && elapsedMs <= PING_INTERVAL_MS + 1000)) {
+                if (replyNonce === activeNonce || replyNonce === "BOOT" || (elapsedMs !== null && elapsedMs <= PING_INTERVAL_MS + 1500)) {
                     triggerFlash("panel-network");
                     confirmBoardOnline(elapsedMs);
                 }
@@ -847,16 +848,16 @@
 
         const timerMessage = new Paho.MQTT.Message(timerValue.toString());
         timerMessage.destinationName = TOPIC_TIMER_SET;
-        timerMessage.qos = 0;
+        timerMessage.qos = 1;
         timerMessage.retained = true;
         client.send(timerMessage);
 
         setTimeout(() => {
             const switchMessage = new Paho.MQTT.Message("ON");
             switchMessage.destinationName = TOPIC_SWITCH;
-            switchMessage.qos = 0;
+            switchMessage.qos = 1;
             client.send(switchMessage);
-        }, 150);
+        }, 120);
     }
 
     function stopPump() {
@@ -867,7 +868,7 @@
 
         const message = new Paho.MQTT.Message("OFF");
         message.destinationName = TOPIC_SWITCH;
-        message.qos = 0;
+        message.qos = 1;
         client.send(message);
         
         resetTimerDisplay();
