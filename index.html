@@ -529,8 +529,7 @@
 
     let isBrokerConnected = false;
     let isBoardConfirmed = false;
-    let activeNonce = null;
-    let pingSentAt = 0;
+    const pendingNonces = new Map();
     let heartbeatTimer = null;
     let pingInterval = null;
 
@@ -556,9 +555,18 @@
 
     function sendPingProbe() {
         if (!isBrokerConnected) return;
-        activeNonce = Math.floor(100000 + Math.random() * 900000).toString();
-        pingSentAt = performance.now();
-        const pingMsg = new Paho.MQTT.Message("PING:" + activeNonce);
+        const nonce = Math.floor(100000 + Math.random() * 900000).toString();
+        const sentAt = performance.now();
+        pendingNonces.set(nonce, sentAt);
+
+        // Prune stale nonces older than 10 seconds
+        for (const [key, ts] of pendingNonces.entries()) {
+            if (sentAt - ts > 10000) {
+                pendingNonces.delete(key);
+            }
+        }
+
+        const pingMsg = new Paho.MQTT.Message("PING:" + nonce);
         pingMsg.destinationName = TOPIC_PING;
         pingMsg.qos = 1;
         client.send(pingMsg);
@@ -673,6 +681,7 @@
 
     function setBoardOffline(offlineText = "Offline") {
         isBoardConfirmed = false;
+        pendingNonces.clear();
         const dot = document.getElementById("pump-status-dot");
         const txt = document.getElementById("pump-status-text");
         dot.className = "status-dot";
@@ -763,9 +772,14 @@
             if (payload.startsWith("PONG:")) {
                 const replyNonce = payload.substring(5);
                 const nowPerf = performance.now();
-                const elapsedMs = pingSentAt > 0 ? (nowPerf - pingSentAt) : null;
+                let elapsedMs = null;
 
-                if (replyNonce === activeNonce || replyNonce === "BOOT" || (elapsedMs !== null && elapsedMs <= PING_INTERVAL_MS + 1500)) {
+                if (pendingNonces.has(replyNonce)) {
+                    elapsedMs = nowPerf - pendingNonces.get(replyNonce);
+                    pendingNonces.delete(replyNonce);
+                }
+
+                if (elapsedMs !== null || replyNonce === "BOOT" || replyNonce === "0") {
                     triggerFlash("panel-network");
                     confirmBoardOnline(elapsedMs);
                 }
@@ -785,7 +799,7 @@
             resetHeartbeat();
             const timeEl = document.getElementById("board-time-val");
             timeEl.innerText = payload;
-            timeEl.style.color = "var(--accent-blue)";
+            timeEl.style.color = payload.includes("Syncing") ? "var(--accent-red)" : "var(--accent-blue)";
             return;
         }
         
