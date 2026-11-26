@@ -533,7 +533,7 @@
     let heartbeatTimer = null;
     let pingInterval = null;
 
-    const HEARTBEAT_TIMEOUT_MS = 5000;
+    const HEARTBEAT_TIMEOUT_MS = 9000;
     const PING_INTERVAL_MS = 3000;
 
     client.onConnectionLost = onConnectionLost;
@@ -559,7 +559,6 @@
         const sentAt = performance.now();
         pendingNonces.set(nonce, sentAt);
 
-        // Prune stale nonces older than 10 seconds
         for (const [key, ts] of pendingNonces.entries()) {
             if (sentAt - ts > 10000) {
                 pendingNonces.delete(key);
