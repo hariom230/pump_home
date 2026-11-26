@@ -45,6 +45,18 @@
             border-radius: 20px;
             padding: 28px;
             box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+            animation: pageOpenScale 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes pageOpenScale {
+            0% {
+                opacity: 0;
+                transform: translateY(20px) scale(0.96);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         header {
@@ -75,8 +87,7 @@
             color: transparent;
             -webkit-background-clip: text;
             background-clip: text;
-            animation: rainbowShift 6s linear infinite;
-            will-change: background-position;
+            animation: rainbowShift 3s linear infinite;
         }
 
         @keyframes rainbowShift {
@@ -155,11 +166,19 @@
             display: inline-block;
             background-color: var(--accent-red);
             margin-right: 8px;
+            transition: all 0.3s ease;
         }
 
         .status-dot.connected {
             background-color: var(--accent-green);
             box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse-glow 1.8s infinite ease-in-out;
+        }
+
+        @keyframes pulse-glow {
+            0% { transform: scale(0.95); opacity: 0.7; }
+            50% { transform: scale(1.3); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.7; }
         }
 
         .btn-check {
@@ -171,11 +190,16 @@
             font-size: 0.75rem;
             font-weight: 700;
             cursor: pointer;
-            transition: background 0.15s ease;
+            transition: all 0.2s ease;
         }
 
         .btn-check:hover {
             background: rgba(88, 166, 255, 0.28);
+            transform: translateY(-1px);
+        }
+
+        .btn-check:active {
+            transform: translateY(1px);
         }
 
         .grid-monitor {
@@ -193,7 +217,11 @@
             border: 1px solid var(--border-color);
             position: relative;
             overflow: hidden;
-            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+            transition: border-color 0.4s ease, box-shadow 0.4s ease, transform 0.2s ease;
+        }
+
+        .monitor-panel:hover {
+            transform: translateY(-2px);
         }
 
         .monitor-label {
@@ -208,6 +236,7 @@
             font-size: 1.15rem;
             font-weight: 700;
             margin-top: 4px;
+            transition: color 0.3s ease;
             position: relative;
             z-index: 2;
         }
@@ -249,7 +278,8 @@
             height: 12px;
             border-radius: 50%;
             background: #484f58;
-            opacity: 0.35;
+            opacity: 0.3;
+            transition: all 0.4s ease;
         }
 
         .side-rgb.left { left: 16px; }
@@ -257,25 +287,61 @@
 
         .monitor-panel.state-idle .side-rgb {
             background: #38bdf8;
-            opacity: 0.85;
-            box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+            opacity: 0.8;
+            animation: rgbBreathe 3s infinite ease-in-out;
+        }
+
+        @keyframes rgbBreathe {
+            0%, 100% { transform: translateY(-50%) scale(0.85); box-shadow: 0 0 4px rgba(56, 189, 248, 0.4); }
+            50% { transform: translateY(-50%) scale(1.15); box-shadow: 0 0 12px rgba(56, 189, 248, 0.9); }
         }
 
         .monitor-panel.state-running {
-            border-color: rgba(56, 189, 248, 0.45);
-            box-shadow: inset 0 0 14px rgba(56, 189, 248, 0.1);
+            border-color: rgba(56, 189, 248, 0.4);
+            box-shadow: inset 0 0 16px rgba(56, 189, 248, 0.1);
         }
 
         .monitor-panel.state-running .side-rgb {
-            background: #38ef7d;
             opacity: 1;
-            box-shadow: 0 0 12px #38ef7d;
+            animation: rgbSpectrumWave 2s infinite linear;
+        }
+
+        .monitor-panel.state-running .side-rgb.right {
+            animation-delay: -1s;
+        }
+
+        @keyframes rgbSpectrumWave {
+            0% {
+                background: #00f2fe;
+                box-shadow: 0 0 10px #00f2fe, 0 0 20px #00f2fe;
+                transform: translateY(-50%) scale(0.9);
+            }
+            33% {
+                background: #38ef7d;
+                box-shadow: 0 0 12px #38ef7d, 0 0 22px #38ef7d;
+                transform: translateY(-50%) scale(1.3);
+            }
+            66% {
+                background: #ff007f;
+                box-shadow: 0 0 12px #ff007f, 0 0 22px #ff007f;
+                transform: translateY(-50%) scale(0.9);
+            }
+            100% {
+                background: #00f2fe;
+                box-shadow: 0 0 10px #00f2fe, 0 0 20px #00f2fe;
+                transform: translateY(-50%) scale(0.9);
+            }
         }
 
         .monitor-panel.state-error .side-rgb {
             background: var(--accent-red);
             opacity: 1;
-            box-shadow: 0 0 10px var(--accent-red);
+            animation: rgbAlert 0.8s infinite ease-in-out;
+        }
+
+        @keyframes rgbAlert {
+            0%, 100% { transform: translateY(-50%) scale(0.8); box-shadow: 0 0 2px var(--accent-red); }
+            50% { transform: translateY(-50%) scale(1.4); box-shadow: 0 0 14px var(--accent-red); }
         }
 
         .control-group {
@@ -302,11 +368,13 @@
             font-size: 1.1rem;
             font-weight: bold;
             outline: none;
-            transition: border-color 0.15s ease;
+            transition: all 0.25s ease;
         }
 
         input[type="number"]:focus {
             border-color: var(--accent-blue);
+            box-shadow: 0 0 12px rgba(88, 166, 255, 0.25);
+            transform: scale(1.01);
         }
 
         .btn-stack {
@@ -324,29 +392,42 @@
             cursor: pointer;
             border: none;
             letter-spacing: 0.03em;
-            transition: transform 0.1s ease, opacity 0.15s ease;
+            transition: all 0.25s ease;
         }
 
         button:active {
-            transform: scale(0.98);
+            transform: translateY(2px) scale(0.98);
         }
 
         .btn-start {
             background: linear-gradient(135deg, #238636, #2ea043);
             color: #ffffff;
+            box-shadow: 0 4px 15px rgba(46, 160, 67, 0.3);
         }
 
         .btn-start:hover {
-            opacity: 0.92;
+            box-shadow: 0 6px 20px rgba(46, 160, 67, 0.5);
+            transform: translateY(-2px);
         }
 
         .btn-stop {
             background: linear-gradient(135deg, #da3633, #f85149);
             color: #ffffff;
+            box-shadow: 0 4px 15px rgba(248, 81, 73, 0.3);
         }
 
         .btn-stop:hover {
-            opacity: 0.92;
+            box-shadow: 0 6px 20px rgba(248, 81, 73, 0.5);
+            transform: translateY(-2px);
+        }
+
+        .flash-update {
+            animation: pulse-border 0.6s ease;
+        }
+
+        @keyframes pulse-border {
+            0% { border-color: var(--accent-blue); }
+            100% { border-color: var(--border-color); }
         }
     </style>
 </head>
@@ -418,8 +499,8 @@
     </div>
 
     <div class="control-group">
-        <label for="timer-input">Set Custom Run Time (1 - 60 Minutes)</label>
-        <input type="number" id="timer-input" min="1" max="60" value="" placeholder="Enter minutes (1 - 60)">
+        <label for="timer-input">Set Custom Run Time (1 - 10 Minutes)</label>
+        <input type="number" id="timer-input" min="1" max="10" value="" placeholder="Enter minutes (1 - 10)">
     </div>
 
     <div class="btn-stack">
@@ -429,11 +510,11 @@
 </div>
 
 <script>
-    const MQTT_HOST = "broker.emqx.io"; 
+    // Keep these values identical to the ESP8266 firmware.
+    const MQTT_HOST = "broker.emqx.io";
     const MQTT_PORT = 8084;
     const MQTT_PATH = "/mqtt";
-    const CLIENT_ID = "WebPanel_" + Math.random().toString(16).substr(2, 8);
-
+    const CLIENT_ID = "WebPanel_" + Math.random().toString(16).slice(2, 10);
     const TOPIC_PREFIX = "hrx_ml_bsp_wlvl_9482/esp8266_pump_ctrl_v2";
     const TOPIC_SWITCH = TOPIC_PREFIX + "/cmd/relay_switch";
     const TOPIC_TIMER_SET = TOPIC_PREFIX + "/cfg/run_duration_min";
@@ -443,407 +524,235 @@
     const TOPIC_BOARD_TIME = TOPIC_PREFIX + "/tele/ntp_clock_hhmmss";
     const TOPIC_WIFI_RSSI = TOPIC_PREFIX + "/tele/sta_wifi_rssi_dbm";
 
-    const client = new Paho.MQTT.Client(MQTT_HOST, Number(MQTT_PORT), MQTT_PATH, CLIENT_ID);
+    const client = new Paho.MQTT.Client(MQTT_HOST, MQTT_PORT, MQTT_PATH, CLIENT_ID);
+    let brokerConnected = false;
+    let boardOnline = false;
+    let pingTimer = null;
+    let reconnectTimer = null;
+    let commandTimer = null;
+    let pendingNonces = new Map();
+    let commandPending = false;
+    let expectedCommandState = null;
+    let pumpIsRunning = false;
+    let lastTelemetryAt = 0;
+    const BOARD_STALE_MS = 20000;
 
-    let isBrokerConnected = false;
-    let isBoardConfirmed = false;
-    const pendingNonces = new Map();
-    let heartbeatTimer = null;
-    let pingInterval = null;
-    let localTickInterval = null;
-
-    let localPumpActive = false;
-    let localRemainingSec = 0;
-    let localSetMin = 0;
-    let lastLocalTickMs = 0;
-
-    // Generous timeout (25s) with 5s ping interval prevents false offline drops on public broker/Wi-Fi jitter
-    const HEARTBEAT_TIMEOUT_MS = 25000;
-    const PING_INTERVAL_MS = 5000;
-
+    const $ = id => document.getElementById(id);
     client.onConnectionLost = onConnectionLost;
     client.onMessageArrived = onMessageArrived;
-
-    setBoardOffline("Offline");
     connectBroker();
-    startLocalCountdownTick();
 
+    function setWebStatus(text, online) {
+        $('web-status-dot').className = online ? 'status-dot connected' : 'status-dot';
+        $('web-status-text').textContent = text;
+        $('web-status-text').style.color = online ? 'var(--accent-green)' : 'var(--accent-red)';
+    }
+    function setBoardStatus(text, online) {
+        boardOnline = online;
+        $('pump-status-dot').className = online ? 'status-dot connected' : 'status-dot';
+        $('pump-status-text').textContent = text;
+        $('pump-status-text').style.color = online ? 'var(--accent-green)' : 'var(--accent-red)';
+        updateButtons();
+    }
+    function updateButtons() {
+        const enabled = brokerConnected && boardOnline && !commandPending;
+        document.querySelector('.btn-start').disabled = !enabled;
+        document.querySelector('.btn-stop').disabled = !enabled;
+        document.querySelector('.btn-start').style.opacity = enabled ? '1' : '.55';
+        document.querySelector('.btn-stop').style.opacity = enabled ? '1' : '.55';
+    }
+    function setPumpDisplay(running, remaining, duration) {
+        pumpIsRunning = running;
+        $('pump-runtime-status').textContent = running ? 'Pump Active' : 'Idle';
+        $('pump-runtime-status').style.color = running ? 'var(--accent-blue)' : 'var(--accent-green)';
+        if (running) {
+            if (duration) $('timer-set-val').textContent = duration + ' min';
+            if (remaining) $('timer-remaining-val').textContent = remaining;
+            $('timer-remaining-val').style.color = 'var(--accent-green)';
+            updateRGBPattern('running');
+        } else {
+            resetTimerDisplay();
+            updateRGBPattern('idle');
+        }
+        if (commandPending && expectedCommandState === running) { expectedCommandState = null; clearCommandPending(); }
+    }
+    function clearCommandPending() {
+        commandPending = false;
+        expectedCommandState = null;
+        if (commandTimer) { clearTimeout(commandTimer); commandTimer = null; }
+        updateButtons();
+    }
+    function markCommandPending(label) {
+        commandPending = true;
+        updateButtons();
+        $('pump-runtime-status').textContent = label;
+        $('pump-runtime-status').style.color = 'var(--accent-blue)';
+        if (commandTimer) clearTimeout(commandTimer);
+        commandTimer = setTimeout(() => {
+            commandPending = false;
+            updateButtons();
+            $('pump-runtime-status').textContent = pumpIsRunning ? 'Pump Active' : 'Waiting for board status';
+        }, 6000);
+    }
     function connectBroker() {
-        const options = {
-            onSuccess: onConnect,
-            onFailure: onFailure,
-            keepAliveInterval: 20,
-            useSSL: true 
-        };
-        client.connect(options);
+        if (client.isConnected()) return;
+        if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+        try {
+            client.connect({
+                useSSL: true,
+                cleanSession: true,
+                keepAliveInterval: 30,
+                timeout: 8,
+                onSuccess: onConnect,
+                onFailure: () => {
+                    brokerConnected = false;
+                    setWebStatus('Connection retrying', false);
+                    updateButtons();
+                    scheduleReconnect();
+                }
+            });
+        } catch (e) { scheduleReconnect(); }
     }
-
-    function formatMMSS(totalSec) {
-        const clamped = Math.max(0, Math.floor(totalSec));
-        const mm = String(Math.floor(clamped / 60)).padStart(2, "0");
-        const ss = String(clamped % 60).padStart(2, "0");
-        return mm + ":" + ss;
+    function scheduleReconnect() {
+        if (reconnectTimer) return;
+        reconnectTimer = setTimeout(() => { reconnectTimer = null; connectBroker(); }, 3000);
     }
-
-    function renderRunningState(remSec, setMinVal) {
-        document.getElementById("pump-runtime-status").innerText = "Pump Active";
-        document.getElementById("pump-runtime-status").style.color = "var(--accent-blue)";
-        const remEl = document.getElementById("timer-remaining-val");
-        remEl.innerText = formatMMSS(remSec);
-        remEl.style.color = "var(--accent-green)";
-        document.getElementById("timer-set-val").innerText = setMinVal + " min";
-        updateRGBPattern("running");
-    }
-
-    function renderIdleState() {
-        localPumpActive = false;
-        localRemainingSec = 0;
-        document.getElementById("pump-runtime-status").innerText = "Idle";
-        document.getElementById("pump-runtime-status").style.color = "var(--accent-green)";
-        resetTimerDisplay();
-        updateRGBPattern("idle");
-    }
-
-    function startLocalCountdownTick() {
-        if (localTickInterval) clearInterval(localTickInterval);
-        localTickInterval = setInterval(() => {
-            if (!isBoardConfirmed || !localPumpActive) return;
-            const nowPerf = performance.now();
-            const elapsedSec = (nowPerf - lastLocalTickMs) / 1000;
-            lastLocalTickMs = nowPerf;
-            localRemainingSec = Math.max(0, localRemainingSec - elapsedSec);
-            document.getElementById("timer-remaining-val").innerText = formatMMSS(localRemainingSec);
-        }, 1000);
-    }
-
-    function sendPingProbe() {
-        if (!isBrokerConnected) return;
-        const nonce = Math.floor(100000 + Math.random() * 900000).toString();
-        const sentAt = performance.now();
-        pendingNonces.set(nonce, sentAt);
-
-        for (const [key, ts] of pendingNonces.entries()) {
-            if (sentAt - ts > 30000) {
-                pendingNonces.delete(key);
-            }
-        }
-
-        const pingMsg = new Paho.MQTT.Message("PING:" + nonce);
-        pingMsg.destinationName = TOPIC_PING;
-        pingMsg.qos = 0;
-        client.send(pingMsg);
-    }
-
-    function manualCheckBoard() {
-        if (!isBrokerConnected) {
-            alert("Web Dashboard is not connected to the MQTT broker yet.");
-            return;
-        }
-        if (!isBoardConfirmed) {
-            setBoardOffline("Offline (Checking...)");
-        }
-        sendPingProbe();
-        resetHeartbeat();
-    }
-
-    function startPingLoop() {
-        stopPingLoop();
-        sendPingProbe();
-        pingInterval = setInterval(sendPingProbe, PING_INTERVAL_MS);
-    }
-
-    function stopPingLoop() {
-        if (pingInterval) {
-            clearInterval(pingInterval);
-            pingInterval = null;
-        }
-    }
-
-    function resetTimerDisplay() {
-        document.getElementById("timer-set-val").innerText = "-- min";
-        document.getElementById("timer-remaining-val").innerText = "00:00";
-        document.getElementById("timer-remaining-val").style.color = "var(--text-muted)";
-    }
-
-    function resetBoardTimeDisplay() {
-        document.getElementById("board-time-val").innerText = "--:--:--";
-        document.getElementById("board-time-val").style.color = "var(--text-muted)";
-    }
-
-    function resetLatencyDisplay() {
-        const el = document.getElementById("ping-latency-val");
-        el.innerText = "-- ms";
-        el.style.color = "var(--text-muted)";
-    }
-
-    function resetWifiSignalDisplay() {
-        const el = document.getElementById("wifi-signal-val");
-        el.innerText = "-- dBm";
-        el.style.color = "var(--text-muted)";
-    }
-
-    function updateLatencyDisplay(rttMs) {
-        const el = document.getElementById("ping-latency-val");
-        const rounded = Math.max(1, Math.round(rttMs));
-        el.innerText = rounded + " ms";
-        if (rounded < 350) {
-            el.style.color = "var(--accent-green)";
-        } else if (rounded < 1000) {
-            el.style.color = "var(--accent-blue)";
-        } else {
-            el.style.color = "var(--accent-red)";
-        }
-    }
-
-    function updateWifiSignalDisplay(payload) {
-        const el = document.getElementById("wifi-signal-val");
-        const rssiNum = parseInt(payload, 10);
-        if (isNaN(rssiNum)) {
-            el.innerText = payload;
-            el.style.color = "var(--text-muted)";
-            return;
-        }
-        let quality = "Weak";
-        let color = "var(--accent-red)";
-        if (rssiNum >= -60) {
-            quality = "Strong";
-            color = "var(--accent-green)";
-        } else if (rssiNum >= -75) {
-            quality = "Fair";
-            color = "var(--accent-blue)";
-        }
-        el.innerText = rssiNum + " dBm (" + quality + ")";
-        el.style.color = color;
-    }
-
-    function resetHeartbeat() {
-        if (heartbeatTimer) clearTimeout(heartbeatTimer);
-        heartbeatTimer = setTimeout(() => {
-            setBoardOffline("Offline (No Response)");
-        }, HEARTBEAT_TIMEOUT_MS);
-    }
-
-    function updateRGBPattern(state) {
-        const panel = document.getElementById("panel-network");
-        panel.classList.remove("state-idle", "state-running", "state-error");
-        
-        if (state === "running") {
-            panel.classList.add("state-running");
-        } else if (state === "idle") {
-            panel.classList.add("state-idle");
-        } else {
-            panel.classList.add("state-error");
-        }
-    }
-
-    function setBoardOffline(offlineText = "Offline") {
-        isBoardConfirmed = false;
-        localPumpActive = false;
-        localRemainingSec = 0;
-        pendingNonces.clear();
-        const dot = document.getElementById("pump-status-dot");
-        const txt = document.getElementById("pump-status-text");
-        dot.className = "status-dot";
-        txt.innerText = offlineText;
-        txt.style.color = offlineText.includes("Checking") ? "var(--accent-blue)" : "var(--accent-red)";
-
-        document.getElementById("pump-runtime-status").innerText = offlineText.includes("Checking") ? "Checking..." : "Offline";
-        document.getElementById("pump-runtime-status").style.color = offlineText.includes("Checking") ? "var(--accent-blue)" : "var(--accent-red)";
-        resetTimerDisplay();
-        resetBoardTimeDisplay();
-        resetLatencyDisplay();
-        resetWifiSignalDisplay();
-        updateRGBPattern("error");
-        if (heartbeatTimer) {
-            clearTimeout(heartbeatTimer);
-            heartbeatTimer = null;
-        }
-    }
-
-    function confirmBoardOnline(rttMs = null) {
-        const wasOffline = !isBoardConfirmed;
-        isBoardConfirmed = true;
-        const dot = document.getElementById("pump-status-dot");
-        const txt = document.getElementById("pump-status-text");
-        dot.className = "status-dot connected";
-        txt.innerText = "Online (Confirmed)";
-        txt.style.color = "var(--accent-green)";
-        if (rttMs !== null) {
-            updateLatencyDisplay(rttMs);
-        }
-        if (wasOffline && !localPumpActive) {
-            renderIdleState();
-        }
-        resetHeartbeat();
-    }
-
     function onConnect() {
-        isBrokerConnected = true;
-        document.getElementById("web-status-dot").className = "status-dot connected";
-        const webTxt = document.getElementById("web-status-text");
-        webTxt.innerText = "Connected";
-        webTxt.style.color = "var(--accent-green)";
-
-        setBoardOffline("Offline (Checking...)");
-
-        client.subscribe(TOPIC_STATUS);
-        client.subscribe(TOPIC_TELEMETRY);
-        client.subscribe(TOPIC_BOARD_TIME);
-        client.subscribe(TOPIC_WIFI_RSSI);
-
-        startPingLoop();
+        brokerConnected = true;
+        setWebStatus('Connected', true);
+        client.subscribe(TOPIC_STATUS, {qos: 1});
+        client.subscribe(TOPIC_TELEMETRY, {qos: 1});
+        client.subscribe(TOPIC_BOARD_TIME, {qos: 0});
+        client.subscribe(TOPIC_WIFI_RSSI, {qos: 0});
+        sendPingProbe();
+        if (pingTimer) clearInterval(pingTimer);
+        pingTimer = setInterval(sendPingProbe, 5000);
+        updateButtons();
     }
-
-    function onFailure(message) {
-        isBrokerConnected = false;
-        stopPingLoop();
-        const webTxt = document.getElementById("web-status-text");
-        webTxt.innerText = "Connection Failed";
-        webTxt.style.color = "var(--accent-red)";
-        document.getElementById("web-status-dot").className = "status-dot";
-        setBoardOffline("Offline");
-        setTimeout(connectBroker, 3000); 
+    function onConnectionLost(response) {
+        brokerConnected = false;
+        setWebStatus('Disconnected - reconnecting', false);
+        setBoardStatus('Board status unknown', false);
+        if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
+        scheduleReconnect();
     }
-
-    function onConnectionLost(responseObject) {
-        isBrokerConnected = false;
-        stopPingLoop();
-        document.getElementById("web-status-dot").className = "status-dot";
-        const webTxt = document.getElementById("web-status-text");
-        webTxt.innerText = "Disconnected";
-        webTxt.style.color = "var(--accent-red)";
-        
-        setBoardOffline("Offline");
-
-        if (responseObject.errorCode !== 0) {
-            setTimeout(connectBroker, 3000);
-        }
+    function sendPingProbe() {
+        if (!brokerConnected || !client.isConnected()) return;
+        const nonce = String(Date.now()) + String(Math.floor(Math.random() * 1000));
+        pendingNonces.set(nonce, performance.now());
+        for (const [key, sent] of pendingNonces) if (performance.now() - sent > 15000) pendingNonces.delete(key);
+        const msg = new Paho.MQTT.Message('PING:' + nonce);
+        msg.destinationName = TOPIC_PING;
+        msg.qos = 1;
+        msg.retained = false;
+        try { client.send(msg); } catch (e) { /* reconnect handler will recover */ }
     }
-
+    function manualCheckBoard() {
+        if (!brokerConnected) { alert('Dashboard is reconnecting to MQTT. Please wait.'); return; }
+        sendPingProbe();
+    }
     function onMessageArrived(message) {
         const topic = message.destinationName;
-        const payload = message.payloadString.trim();
-
-        if (payload.length === 0) return;
-
+        const payload = (message.payloadString || '').trim();
+        if (!payload) return;
         if (topic === TOPIC_STATUS) {
-            if (payload === "OFFLINE") {
-                setBoardOffline("Offline");
+            if (payload === 'OFFLINE') {
+                setBoardStatus('Offline', false);
                 return;
             }
-
-            if (payload.startsWith("PONG:")) {
-                const replyNonce = payload.substring(5);
-                const nowPerf = performance.now();
-                let elapsedMs = null;
-
-                if (pendingNonces.has(replyNonce)) {
-                    elapsedMs = nowPerf - pendingNonces.get(replyNonce);
-                    pendingNonces.delete(replyNonce);
+            if (payload.startsWith('PONG:')) {
+                const nonce = payload.substring(5);
+                if (pendingNonces.has(nonce) || nonce === 'BOOT' || nonce === '0') {
+                    const sent = pendingNonces.get(nonce);
+                    if (sent !== undefined) {
+                        const rtt = Math.max(1, Math.round(performance.now() - sent));
+                        $('ping-latency-val').textContent = rtt + ' ms';
+                        $('ping-latency-val').style.color = rtt < 250 ? 'var(--accent-green)' : (rtt < 800 ? 'var(--accent-blue)' : 'var(--accent-red)');
+                    }
+                    pendingNonces.delete(nonce);
+                    setBoardStatus('Online', true);
+                    lastTelemetryAt = Date.now();
                 }
-
-                // Accept any valid PONG reply so minor latency spikes don't drop Online status
-                confirmBoardOnline(elapsedMs);
             }
             return;
         }
-
         if (topic === TOPIC_WIFI_RSSI) {
-            if (isBoardConfirmed) resetHeartbeat();
-            updateWifiSignalDisplay(payload);
+            const n = parseInt(payload, 10);
+            $('wifi-signal-val').textContent = Number.isNaN(n) ? payload : n + ' dBm';
+            $('wifi-signal-val').style.color = Number.isNaN(n) ? 'var(--text-muted)' : (n >= -60 ? 'var(--accent-green)' : (n >= -75 ? 'var(--accent-blue)' : 'var(--accent-red)'));
             return;
         }
-
         if (topic === TOPIC_BOARD_TIME) {
-            if (isBoardConfirmed) resetHeartbeat();
-            const timeEl = document.getElementById("board-time-val");
-            timeEl.innerText = payload;
-            timeEl.style.color = payload.includes("Syncing") ? "var(--accent-red)" : "var(--accent-blue)";
+            $('board-time-val').textContent = payload;
+            $('board-time-val').style.color = payload.includes('UPTIME') ? 'var(--text-muted)' : 'var(--accent-blue)';
             return;
         }
-        
         if (topic === TOPIC_TELEMETRY) {
-            if (isBoardConfirmed) resetHeartbeat();
-
-            if (payload.includes("left out of")) {
-                const parts = payload.split("left out of");
-                const remPart = parts[0].trim();
-                const setPart = parts[1].trim();
-                const mmssParts = remPart.split(":");
-                const parsedSec = (mmssParts.length === 2)
-                    ? (parseInt(mmssParts[0], 10) * 60 + parseInt(mmssParts[1], 10))
-                    : 0;
-                const parsedSetMin = parseInt(setPart, 10) || 0;
-
-                localPumpActive = true;
-                localRemainingSec = isNaN(parsedSec) ? 0 : parsedSec;
-                localSetMin = parsedSetMin;
-                lastLocalTickMs = performance.now();
-
-                if (isBoardConfirmed) {
-                    renderRunningState(localRemainingSec, localSetMin);
-                }
-            } else if (payload === "Idle" || payload === "OFF") {
-                if (isBoardConfirmed) {
-                    renderIdleState();
-                } else {
-                    localPumpActive = false;
-                    localRemainingSec = 0;
-                }
-            } else if (isBoardConfirmed) {
-                updateRGBPattern("error");
-            }
+            lastTelemetryAt = Date.now();
+            setBoardStatus('Online', true);
+            triggerFlash('panel-network');
+            // Firmware sends: "MM:SS left out of N min" or "Idle".
+            const match = payload.match(/^(\d{2}:\d{2})\s+left out of\s+(\d+)\s+min$/i);
+            if (match) setPumpDisplay(true, match[1], match[2]);
+            else if (payload === 'Idle' || payload === 'OFF') setPumpDisplay(false, '', '');
         }
     }
-
+    function sendCommand(payload, pendingLabel) {
+        if (!brokerConnected || !boardOnline || !client.isConnected()) {
+            alert('The pump board is not currently confirmed online. Please wait for the Online status.');
+            return false;
+        }
+        const msg = new Paho.MQTT.Message(payload);
+        msg.destinationName = TOPIC_SWITCH;
+        msg.qos = 1;
+        msg.retained = false;
+        try {
+            expectedCommandState = payload === 'OFF' ? false : true;
+            markCommandPending(pendingLabel);
+            client.send(msg);
+            return true;
+        } catch (e) {
+            clearCommandPending();
+            alert('Command could not be sent. Dashboard will reconnect.');
+            return false;
+        }
+    }
     function startPump() {
-        if (!isBoardConfirmed) {
-            alert("Pump hardware is not confirmed Online yet. Commands cannot be sent.");
+        let value = parseInt($('timer-input').value, 10);
+        if (!Number.isInteger(value) || value < 1 || value > 10) {
+            alert('Enter a run time from 1 to 10 minutes.');
             return;
         }
-
-        let timerInput = document.getElementById("timer-input");
-        let timerValue = parseInt(timerInput.value, 10);
-
-        if (isNaN(timerValue) || timerValue <= 0) {
-            alert("Please enter a valid timer duration (1 to 60 minutes) before starting.");
-            return;
-        }
-
-        timerValue = Math.min(60, Math.max(1, timerValue));
-        timerInput.value = timerValue;
-
-        const timerMessage = new Paho.MQTT.Message(timerValue.toString());
-        timerMessage.destinationName = TOPIC_TIMER_SET;
-        timerMessage.qos = 0;
-        timerMessage.retained = true;
-        client.send(timerMessage);
-
-        const switchMessage = new Paho.MQTT.Message("ON");
-        switchMessage.destinationName = TOPIC_SWITCH;
-        switchMessage.qos = 0;
-        client.send(switchMessage);
-
-        localPumpActive = true;
-        localRemainingSec = timerValue * 60;
-        localSetMin = timerValue;
-        lastLocalTickMs = performance.now();
-        renderRunningState(localRemainingSec, localSetMin);
+        sendCommand('ON:' + value, 'Starting pump...');
     }
-
     function stopPump() {
-        if (!isBoardConfirmed) {
-            alert("Pump hardware is not confirmed Online yet.");
-            return;
-        }
-
-        const message = new Paho.MQTT.Message("OFF");
-        message.destinationName = TOPIC_SWITCH;
-        message.qos = 0;
-        client.send(message);
-
-        renderIdleState();
+        sendCommand('OFF', 'Stopping pump...');
     }
+
+    function triggerFlash(id) {
+        const el = $(id);
+        if (!el) return;
+        el.classList.remove('flash-update');
+        void el.offsetWidth;
+        el.classList.add('flash-update');
+    }
+    function resetTimerDisplay() {
+        $('timer-set-val').textContent = '-- min';
+        $('timer-remaining-val').textContent = '00:00';
+        $('timer-remaining-val').style.color = 'var(--text-muted)';
+    }
+    function updateRGBPattern(state) {
+        const panel = $('panel-network');
+        panel.classList.remove('state-idle', 'state-running', 'state-error');
+        panel.classList.add(state === 'running' ? 'state-running' : (state === 'idle' ? 'state-idle' : 'state-error'));
+    }
+    // If no valid telemetry arrives, show stale status without changing the relay.
+    setInterval(() => {
+        if (boardOnline && lastTelemetryAt && Date.now() - lastTelemetryAt > BOARD_STALE_MS) {
+            setBoardStatus('No board response', false);
+        }
+    }, 5000);
+    updateButtons();
 </script>
 </body>
 </html>
