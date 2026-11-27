@@ -166,7 +166,7 @@
             display: inline-block;
             background-color: var(--accent-red);
             margin-right: 8px;
-            transition: all 0.3s ease;
+            transition: border-color 0.3s ease, color 0.3s ease, opacity 0.3s ease;
         }
 
         .status-dot.connected {
@@ -303,7 +303,9 @@
 
         .monitor-panel.state-running .side-rgb {
             opacity: 1;
-            animation: rgbSpectrumWave 2s infinite linear;
+            animation: none;
+            background: #38bdf8;
+            box-shadow: 0 0 6px rgba(56, 189, 248, 0.45);
         }
 
         .monitor-panel.state-running .side-rgb.right {
@@ -336,7 +338,7 @@
         .monitor-panel.state-error .side-rgb {
             background: var(--accent-red);
             opacity: 1;
-            animation: rgbAlert 0.8s infinite ease-in-out;
+            animation: none;
         }
 
         @keyframes rgbAlert {
@@ -368,7 +370,7 @@
             font-size: 1.1rem;
             font-weight: bold;
             outline: none;
-            transition: all 0.25s ease;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
         }
 
         input[type="number"]:focus {
@@ -392,7 +394,7 @@
             cursor: pointer;
             border: none;
             letter-spacing: 0.03em;
-            transition: all 0.25s ease;
+            transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
         }
 
         button:active {
@@ -567,7 +569,7 @@
     let expectedCommandState = null;
     let pumpIsRunning = false;
     let lastTelemetryAt = 0;
-    const BOARD_STALE_MS = 20000;
+    const BOARD_STALE_MS = 30000;
 
     const $ = id => document.getElementById(id);
     client.onConnectionLost = onConnectionLost;
@@ -596,7 +598,8 @@
     function setPumpDisplay(running, remaining, duration) {
         pumpIsRunning = running;
         const visual = $('pump-visual');
-        if (visual) {
+        if (visual && visual.dataset.lastState !== (running ? 'running' : 'idle')) {
+            visual.dataset.lastState = running ? 'running' : 'idle';
             visual.classList.toggle('is-running', running);
             visual.classList.toggle('is-idle', !running);
             visual.setAttribute('aria-label', running ? 'Pump is running' : 'Pump is off');
@@ -665,7 +668,7 @@
         client.subscribe(TOPIC_WIFI_RSSI, {qos: 0});
         sendPingProbe();
         if (pingTimer) clearInterval(pingTimer);
-        pingTimer = setInterval(sendPingProbe, 5000);
+        pingTimer = setInterval(sendPingProbe, 10000);
         updateButtons();
     }
     function onConnectionLost(response) {
@@ -729,7 +732,6 @@
         if (topic === TOPIC_TELEMETRY) {
             lastTelemetryAt = Date.now();
             setBoardStatus('Online', true);
-            triggerFlash('panel-network');
             // Firmware sends: "MM:SS left out of N min" or "Idle".
             const match = payload.match(/^(\d{2}:\d{2})\s+left out of\s+(\d+)\s+min$/i);
             if (match) setPumpDisplay(true, match[1], match[2]);
@@ -771,9 +773,8 @@
     function triggerFlash(id) {
         const el = $(id);
         if (!el) return;
-        el.classList.remove('flash-update');
-        void el.offsetWidth;
         el.classList.add('flash-update');
+        setTimeout(() => el.classList.remove('flash-update'), 650);
     }
     function resetTimerDisplay() {
         $('timer-set-val').textContent = '-- min';
