@@ -429,6 +429,23 @@
             0% { border-color: var(--accent-blue); }
             100% { border-color: var(--border-color); }
         }
+
+        .pump-visual { display:flex; align-items:center; justify-content:center; gap:18px; margin:16px auto 10px; min-height:92px; }
+        .pump-visual svg { width:150px; max-width:48%; overflow:visible; }
+        .pump-visual .pump-shell { fill:#263341; stroke:#8b949e; stroke-width:2.2; }
+        .pump-visual .pipe { fill:none; stroke:#58a6ff; stroke-width:7; stroke-linecap:round; stroke-linejoin:round; }
+        .pump-visual .impeller { transform-origin:75px 52px; }
+        .pump-visual .blade { stroke:#58a6ff; stroke-width:5; stroke-linecap:round; }
+        .pump-visual .water-flow { stroke:#39d5ff; stroke-width:3; stroke-linecap:round; stroke-dasharray:7 8; opacity:0; }
+        .pump-visual .status-copy { font-size:.78rem; color:var(--text-muted); letter-spacing:.12em; font-weight:800; }
+        .pump-visual.is-running .impeller { animation: impeller-spin .7s linear infinite; }
+        .pump-visual.is-running .water-flow { opacity:1; animation: water-move .55s linear infinite; }
+        .pump-visual.is-running .pump-shell { stroke:var(--accent-green); filter:drop-shadow(0 0 7px rgba(63,185,80,.45)); }
+        .pump-visual.is-idle .impeller { animation:none; }
+        .pump-visual.is-idle .pipe { stroke:#59636f; }
+        @keyframes impeller-spin { to { transform:rotate(360deg); } }
+        @keyframes water-move { to { stroke-dashoffset:-30; } }
+
     </style>
 </head>
 <body>
@@ -481,6 +498,21 @@
         <div class="monitor-panel state-error" id="panel-network">
             <div class="side-rgb left"></div>
             <div class="monitor-label">Current Pump State</div>
+            <div id="pump-visual" class="pump-visual is-idle" aria-label="Pump is off">
+                <svg viewBox="0 0 170 92" role="img" aria-hidden="true">
+                    <path class="pipe" d="M18 52 H43 M108 52 H132 V28 H151" />
+                    <rect class="pump-shell" x="42" y="27" width="68" height="50" rx="13" />
+                    <rect class="pump-shell" x="54" y="14" width="43" height="15" rx="4" />
+                    <circle cx="75" cy="52" r="21" fill="#111820" stroke="#8b949e" stroke-width="2" />
+                    <g class="impeller">
+                        <path class="blade" d="M75 52 L75 34 M75 52 L92 61 M75 52 L58 61 M75 52 L88 39 M75 52 L62 39" />
+                        <circle cx="75" cy="52" r="4" fill="#f0f6fc" />
+                    </g>
+                    <path class="water-flow" d="M117 52 H158" />
+                    <circle cx="23" cy="52" r="4" fill="#58a6ff" />
+                </svg>
+                <span id="pump-visual-label" class="status-copy">PUMP STANDBY</span>
+            </div>
             <div id="pump-runtime-status" class="monitor-value" style="color: var(--accent-red);">Offline</div>
             
             <div class="time-readout-grid">
@@ -563,6 +595,13 @@
     }
     function setPumpDisplay(running, remaining, duration) {
         pumpIsRunning = running;
+        const visual = $('pump-visual');
+        if (visual) {
+            visual.classList.toggle('is-running', running);
+            visual.classList.toggle('is-idle', !running);
+            visual.setAttribute('aria-label', running ? 'Pump is running' : 'Pump is off');
+            $('pump-visual-label').textContent = running ? 'WATER FLOW ACTIVE' : 'PUMP STANDBY';
+        }
         $('pump-runtime-status').textContent = running ? 'Pump Active' : 'Idle';
         $('pump-runtime-status').style.color = running ? 'var(--accent-blue)' : 'var(--accent-green)';
         if (running) {
