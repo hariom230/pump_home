@@ -533,8 +533,8 @@
     </div>
 
     <div class="control-group">
-        <label for="timer-input">Set Custom Run Time (1 - 10 Minutes)</label>
-        <input type="number" id="timer-input" min="1" max="10" value="" placeholder="Enter minutes (1 - 10)">
+        <label for="timer-input">Set Custom Run Time (1 - 50 Minutes)</label>
+        <input type="number" id="timer-input" min="1" max="50" value="" placeholder="Enter minutes (1 - 50)">
     </div>
 
     <div class="btn-stack">
@@ -760,8 +760,8 @@
     }
     function startPump() {
         let value = parseInt($('timer-input').value, 10);
-        if (!Number.isInteger(value) || value < 1 || value > 10) {
-            alert('Enter a run time from 1 to 10 minutes.');
+        if (!Number.isInteger(value) || value < 1 || value > 50) {
+            alert('Enter a run time from 1 to 50 minutes.');
             return;
         }
         sendCommand('ON:' + value, 'Starting pump...');
